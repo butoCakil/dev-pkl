@@ -1,0 +1,9 @@
+device: 6285602869114
+sender: 6283840348642
+message: non-text message
+text: non-button message
+member: 
+name: 
+location: 
+pollname: 
+choices: Array

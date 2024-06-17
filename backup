@@ -1,0 +1,473 @@
+<?php
+// time zone
+date_default_timezone_set('Asia/Jakarta');
+// tanggal dan jam hari ini
+$tanggal = date('Y-m-d');
+$jam = date('H:i');
+$tgl = date('d');
+$thn = date('Y');
+
+
+
+// hari bahasa indonesia
+$hari = date('l', strtotime($tanggal));
+$hari_indonesia = array(
+    'Sunday' => 'Minggu',
+    'Monday' => 'Senin',
+    'Tuesday' => 'Selasa',
+    'Wednesday' => 'Rabu',
+    'Thursday' => 'Kamis',
+    'Friday' => 'Jumat',
+    'Saturday' => 'Sabtu'
+);
+
+$hari_indonesia = $hari_indonesia[$hari];
+
+// bulan indonesia
+$bulan = date('F', strtotime($tanggal));
+$bulan_indonesia = array(
+    'January' => 'Januari',
+    'February' => 'Februari',
+    'March' => 'Maret',
+    'April' => 'April',
+    'May' => 'Mei',
+    'June' => 'Juni',
+    'July' => 'Juli',
+    'August' => 'Agustus',
+    'September' => 'September',
+    'October' => 'Oktober',
+    'November' => 'November',
+    'December' => 'Desember'
+);
+
+$bulan_indonesia = $bulan_indonesia[$bulan];
+
+session_start();
+$title = "Presensi Prakerin 2022/2023";
+$admin = false;
+
+if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "presensilagi")) {
+
+    $nis = $_GET["nis"];
+    $akses = $_GET["akses"];
+
+    // ambil data siswa dari database
+    include "koneksi.php";
+
+    // cek dulu di presensi
+    $sql = "SELECT * FROM presensi WHERE nis = '$nis' AND timestamp LIKE '%$tanggal%'";
+    $result = mysqli_query($konek, $sql);
+
+    // jika sudah ada maka redirect ke halaman preview
+    if (mysqli_num_rows($result) > 0 && @$_GET["akses"] != "presensilagi") {
+        header("location: prevpresensi.php?nis=$nis&akses=presensi");
+    }
+
+    $sql = "SELECT * FROM datasiswa WHERE nis = '" . $nis . "'";
+    $result = mysqli_query($konek, $sql);
+    $row = mysqli_fetch_assoc($result);
+
+    $sql2 = "SELECT * FROM duditerisi WHERE nis = '" . $nis . "'";
+    $result2 = mysqli_query($konek, $sql2);
+    $row2 = mysqli_fetch_assoc($result2);
+
+    // Cek Device
+    include_once 'user_agent.php';
+    //create an instance of UserAgent class
+    $ua = new UserAgent();
+
+    include "views/header.php";
+    include "views/navbar.php";
+?>
+
+    <style>
+        h1 {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .info-alert-presensi {
+            text-align: center;
+        }
+
+        .form-presensi {
+            /* form ke tengah */
+            margin-top: 50px;
+            margin-left: auto;
+            margin-right: auto;
+            width: 50%;
+        }
+
+        .form-presensi .input-form-presensi {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .form-presensi .input-form-presensi input,
+        .form-presensi select {
+            width: 82%;
+        }
+
+        .form-presensi .tombol-upload-presensi {
+            /* geser tombol button ke tengah */
+            margin-top: 10px;
+            margin-left: auto;
+            margin-right: auto;
+            width: 60%;
+        }
+
+        #tombolfile {
+            margin-top: 20px;
+            margin-bottom: -20px;
+        }
+
+        .form-presensi .preview {
+            padding: 10px;
+            border: 1px solid #ccc;
+            width: auto;
+        }
+
+        .form-presensi .preview img {
+            height: 100px;
+            width: 100px;
+            object-fit: contain;
+            /* object-position: center; */
+        }
+
+        #dvPreview {
+            display: none;
+        }
+
+        @media screen and (max-width: 900px) {
+
+            .form-presensi .tombol-upload-presensi {
+                display: flex;
+                /* flex-direction: column; */
+                justify-content: center;
+            }
+
+            .form-presensi {
+                /* form ke tengah */
+                margin-top: 50px;
+                margin-left: auto;
+                margin-right: auto;
+                width: 80%;
+            }
+
+            #tombolfile {
+                margin-top: 0px;
+                margin-bottom: 0px;
+            }
+
+            #tombolkamera,
+            #tombolfile {
+                margin-left: 25px;
+                margin-bottom: -20px;
+            }
+        }
+
+        /*  */
+        .tanggalindo {
+            position: relative;
+            width: 150px;
+            height: 40px;
+            color: white;
+        }
+
+        .tanggalindo:before {
+            position: absolute;
+            /* top: 5px; */
+            /* left: 5px; */
+            content: attr(data-date);
+            display: inline-block;
+            color: black;
+        }
+
+        .tanggalindo::-webkit-datetime-edit,
+        .tanggalindo::-webkit-inner-spin-button,
+        .tanggalindo::-webkit-clear-button {
+            display: none;
+        }
+
+        .tanggalindo::-webkit-calendar-picker-indicator {
+            position: absolute;
+            /* top: 5px; */
+            right: 0;
+            color: black;
+            opacity: 1;
+        }
+
+        /*  */
+    </style>
+
+    <style>
+        .custom-file-input::-webkit-file-upload-button {
+            visibility: hidden;
+        }
+
+        .custom-file-input-file::before {
+            content: "Pilih Beberapa File";
+        }
+
+        .custom-file-input-kamera::before {
+            content: "Kamera";
+        }
+
+        .custom-file-input::before {
+            /* content: 'Pilih Beberapa File'; */
+            display: inline-block;
+            background: -webkit-linear-gradient(top, #f9f9f9, #e3e3e3);
+            border: 1px solid #999;
+            border-radius: 3px;
+            padding: 5px 8px;
+            outline: none;
+            white-space: nowrap;
+            -webkit-user-select: none;
+            cursor: pointer;
+            text-shadow: 1px 1px #fff;
+            font-weight: 700;
+            font-size: 10pt;
+        }
+
+
+
+        .custom-file-input:hover::before {
+            border-color: black;
+        }
+
+        .custom-file-input:active::before {
+            background: -webkit-linear-gradient(top, #e3e3e3, #f9f9f9);
+        }
+    </style>
+
+    <div class="container">
+        <h1>Presensi Prakerin</h1>
+
+        <!-- alert info -->
+        <div class="alert alert-info info-alert-presensi">
+            <strong>Info!</strong>
+            <p>
+                <li>
+                    <strong>Klik tombol "Pilih File"</strong> untuk memilih beberapa file foto.
+                </li>
+                <li>
+                    <strong>Klik tombol "Kamera"</strong> untuk mengambil foto dari kamera.
+                </li>
+                <li>
+                    <strong>Pilih "Keterangan"</strong> untuk mengisi keterangan Presensi (Masuk, Pulang, Ijin, Sakit, atau Libur).
+                </li>
+                <li>
+                    <strong>Isikan catatan</strong> sebagai <strong>Jurnal harian</strong>
+                </li>
+                <li>
+                    <strong>Klik tombol "Upload"</strong> untuk menyelesaikan Presensi.
+                </li>
+            </p>
+        </div>
+
+        <div class="col form-presensi">
+
+
+            <div class="alert alert-secondary">
+                <p>
+                    NIS: <strong><?= $row['nis']; ?></strong><br>
+                    Nama: <strong><?= $row['nama']; ?></strong><br>
+                    Kelas: <strong><?= $row['kelas']; ?></strong><br>
+                    Jurusan: <strong><?= $row['jur']; ?></strong><br>
+                    Nama DUDIKA: <strong><?= $row2['namadudi']; ?></strong><br>
+                    Hari, tanggal: <strong><?= $hari_indonesia . ", " . $tgl . " " . $bulan_indonesia . " " . $thn; ?></strong><br>
+                    Jam: <strong><?= $jam; ?></strong><br>
+                </p>
+            </div>
+
+            <form action="_presensi.php" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="kodedudika" value="<?= $row2['kode']; ?>">
+                <input type="hidden" name="nis" value="<?= $row['nis']; ?>">
+                <input type="hidden" name="nama" value="<?= $row['nama']; ?>">
+                <input type="hidden" name="kelas" value="<?= $row['kelas']; ?>">
+
+
+
+                <!-- input tanggal dan jam -->
+                <!-- <div class="form-group input-form-presensi"> -->
+                <!-- <label for="tanggal">Tanggal</label> -->
+                <!-- <input type="date" value="2015-08-09"> -->
+                <!-- <input disabled type="date" data-date="" data-date-format="DD-MM-YYYY" class="form-control tanggalindo" id="tanggal" name="tanggal" value="<?= $tanggal; ?>" placeholder="Tanggal"> -->
+                <!-- </div> -->
+                <!-- <div class="form-group input-form-presensi" id='datetimepicker1'> -->
+                <!-- <label for="jam">Jam</label> -->
+                <!-- <input disabled type="text" class="form-control" id="jam" name="jam" value="<?= $jam; ?>" placeholder="Jam"> -->
+                <!-- </div> -->
+                <div class="form-group input-form-presensi">
+                    <label for="foto">Foto</label>
+                    <!-- <input type="file" class="form-control" id="foto" name="foto[]" multiple> -->
+                    <div>
+
+                        <?php if ($ua->is_mobile()) { ?>
+                            <div id="tombolkamera">
+                                <label class="custom-file-input custom-file-input-kamera" for="UploadCam"></label>
+                                <input id="UploadCam" type="file" name="_photos" accept="image/*" style="visibility: hidden" onchange="showPreview(event);" capture required oninvalid="alert('Ambil Foto Kamera terlebih dahulu!');">
+                            </div>
+                        <?php } else { ?>
+                            <div id="tombolfile">
+                                <label class="custom-file-input custom-file-input-file" for="fileupload"></label>
+                                <input id="fileupload" type="file" multiple="multiple" name="file_photos[]" accept="image/*" style="visibility: hidden" required oninvalid="alert('Pilih Beberapa file foto terlebih dahulu!');">
+                            </div>
+                        <?php } ?>
+                    </div>
+                </div>
+                <div class="form-group preview">
+                    <img id="dvPreview">
+                    <div id="preview"></div>
+                </div>
+
+                <!-- input select keterangan -->
+                <div class="form-group input-form-presensi">
+                    <label for="keterangan">Keterangan</label>
+                    <select class="form-control" id="keterangan" name="keterangan">
+                        <option value="">Pilih Keterangan</option>
+                        <option value="Sakit">Sakit</option>
+                        <option value="Izin">Izin</option>
+                        <option value="Alfa">Alfa</option>
+                        <option value="Tidak Masuk">Tidak Masuk</option>
+                    </select>
+                </div>
+
+                <!-- input text area -->
+                <div class="form-group input-form-presensi">
+                    <label for="catatanjurnal">Catatan/Jurnal</label>
+                    <textarea class="form-control" id="catatanjurnal" name="catatanjurnal" rows="3" placeholder="Isikan catatan/Jurnal kegiatan hari ini di tempat prakerin"></textarea>
+                </div>
+
+                <div class="tombol-upload-presensi">
+                    <button type="submit" class="btn btn-primary btn-sm border-0 mx-2">
+                        <i class="fas fa-upload fa-bounce"></i>&nbsp;
+                        Upload</button>
+                    <button type="button" class="btn btn-dark btn-sm border-0 mx-2">
+                        <i class="fas fa-times fa-beat-fade"></i>&nbsp;
+                        Batal</button>
+                    <button type="button" class="btn btn-secondary btn-sm border-0 mx-2" onClick="document.location.reload(true)">
+                        <!-- icon reload -->
+                        <i class=" fas fa-redo-alt fa-beat-fade"></i>&nbsp;
+                        Refresh
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="container"></div>
+
+    <script>
+        // preview image kamera
+        function showPreview(event) {
+            if (event.target.files.length > 0) {
+                var src = URL.createObjectURL(event.target.files[0]);
+                var preview = document.getElementById("dvPreview");
+                preview.src = src;
+                preview.style.display = "block";
+            }
+        }
+
+        // preview image file (multiple)
+        function previewImages() {
+
+            var preview = document.querySelector('#preview');
+
+            if (this.files) {
+                [].forEach.call(this.files, readAndPreview);
+            }
+
+            function readAndPreview(file) {
+
+                // Make sure `file.name` matches our extensions criteria
+                if (!/\.(jpe?g|png|gif)$/i.test(file.name)) {
+                    return alert(file.name + " is not an image");
+                } // else...
+
+                var reader = new FileReader();
+
+                reader.addEventListener("load", function() {
+                    var image = new Image();
+                    image.height = 100;
+                    image.title = file.name;
+                    image.src = this.result;
+                    preview.appendChild(image);
+                });
+
+                reader.readAsDataURL(file);
+            }
+        }
+
+        document.querySelector('#fileupload').addEventListener("change", previewImages);
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.3/moment.min.js"></script>
+    <script>
+        $("input").on("change", function() {
+            this.setAttribute(
+                "data-date",
+                moment(this.value, "YYYY-MM-DD")
+                .format(this.getAttribute("data-date-format"))
+            )
+        }).trigger("change")
+
+        $(function() {
+            $('#jam').datetimepicker({
+                use24hours: true,
+                format: 'HH:mm'
+            });
+        });
+    </script>
+
+    <script>
+        $(function() {
+            $('#datetimepicker1').datetimepicker({
+                format: 'HH:mm'
+            });
+
+            $('#datetimepicker2').datetimepicker({
+                format: 'MM/DD/YYYY HH:mm'
+            });
+        });
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/js/bootstrap-datetimepicker.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/css/bootstrap-datetimepicker.min.css">
+
+<?php } else { ?>
+
+    <?php include "views/header.php" ?>
+    <?php include "views/navbar.php" ?>
+    <div class="container">
+        <!-- tombol kembali javascript -->
+        <script>
+            function kembali() {
+                history.back(-1);
+            }
+
+            // setTimeout(kembali, 1000);
+        </script>
+
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">Akses ditolak!</h4>
+            <p>Anda tidak memiliki akses untuk mengakses halaman ini.</p>
+            <hr>
+            <p class="mb-0">
+                <button type="button" class="btn btn-primary border-0" onClick="kembali()">Kembali</button>
+            </p>
+        </div>
+    </div>
+<?php } ?>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+<?php include "views/footer.php" ?>

@@ -1,0 +1,1 @@
+"{\"quick\":false,\"device\":\"6285602869114\",\"pesan\":\"non-text message\",\"pengirim\":\"6283840348642\",\"member\":\"\",\"message\":\"non-text message\",\"text\":\"non-button message\",\"sender\":\"6283840348642\",\"name\":\"\",\"location\":\"\",\"url\":\"\",\"type\":\"text\",\"extension\":\"\",\"filename\":\"\",\"pollname\":\"\",\"choices\":[]}"
