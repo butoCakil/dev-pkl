@@ -11,6 +11,15 @@
         margin-right: 160px;
     }
 
+    .logo_size_3 {
+        margin-top: auto;
+        height: 30px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: auto;
+    }
+
     .logo_4 {
         margin-top: 10px;
         height: 70px;
@@ -60,220 +69,223 @@
                     <!-- icon log out -->
                     <i class="fas fa-sign-out-alt fa-beat-fade"></i>&nbsp;
                     Logout
-                    </a>
+                </a>
 
-                    <?php if (@$admin == false) {
-                        $link = "admin/";
-                    } else {
-                        $link = "";
-                        if (@$app = true) {
-                            $link = "../admin/";
-                        }
-                    } ?>
+                <?php if (@$admin == false) {
+                    $link = "admin/";
+                } else {
+                    $link = "";
+                    if (@$app = true) {
+                        $link = "../admin/";
+                    }
+                } ?>
 
-                    <style>
-                        .dropdown-admin {
-                            position: absolute;
-                            right: 0px;
-                            margin-right: 160px;
-                        }
-                    </style>
-                    <!---->
-                    <div class="dropdown dropdown-admin">
-                        <button class="btn btn-warning btn-sm dropdown-toggle border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user fa-shake"></i>&nbsp;
-                            Menu Admin
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <a href="<?= $link; ?>../admin" class="dropdown-item">
-                                    <i class="fas fa-user-cog"></i>&nbsp;
-                                    Halaman Admin
-                                </a>
-                            </li>
-
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-
-
-                            <?php if (@$_SESSION['admin'] == 'admin' || @$_SESSION['admin'] == 'pembimbing') {
-                                if (@$admin == true) {
-                                    $_ll = "../";
-                                } else {
-                                    $_ll = "";
-                                }
-                            ?>
-                                <li>
-                                    <a href="<?= $_ll; ?>app/inputabsen.php" class="dropdown-item">
-                                        <!-- icon back -->
-                                        <i class="far fa-edit text-success"></i>&nbsp;
-                                        Input Absen
-                                    </a>
-                                </li>
-                            <?php } ?>
-
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li>
-                                <a href="<?= $link; ?>rekapabsensiswa.php" class="dropdown-item">
-                                    <!-- icon list user -->
-                                    <i class="fas fa-list fa-bounce"></i>&nbsp;
-                                    Rekap Absensi Siswa
-                                </a>
-                            </li>
-                            <li>
-                                <a href="<?= $link; ?>datasiswa.php" class="dropdown-item">
-                                    <!-- icon list user -->
-                                    <i class="fas fa-users fa-flip"></i>&nbsp;
-                                    Daftar Siswa
-                                </a>
-                            </li>
-
-                            <li>
-                                <a href="<?= $link; ?>recent.php" class="dropdown-item">
-                                    <!-- icon list -->
-                                    <i class="fas fa-history fa-spin fa-spin-reverse"></i>&nbsp;
-                                    Riwayat Pendaftaran
-                                </a>
-                            </li>
-
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-
-                            <li>
-                                <a href="<?= $link; ?>pembimbing.php" class="dropdown-item">
-                                    <!-- icon list user -->
-                                    <i class="fas fa-list fa-bounce"></i>&nbsp;
-                                    Data Pembimbing
-                                </a>
-                            </li>
-
-                            <?php if (@$_SESSION['admin'] == 'admin') { ?>
-                                <li>
-                                    <a href="<?= $link; ?>tambahpembimbing.php?akses=tambah" class="dropdown-item">
-                                        <!-- icon ubah data -->
-                                        <i class="fas fa-plus fa-beat"></i>&nbsp;
-                                        Tambah Pembimbing
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-
-                                <li>
-                                    <a href="<?= $link; ?>tambahdudi.php" class="dropdown-item">
-                                        <!-- icon tambah data -->
-                                        <i class="fas fa-plus fa-beat"></i>&nbsp;
-                                        Tambah DUDIKA
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a href="<?= $link; ?>ubahdudi.php" class="dropdown-item">
-                                        <!-- icon ubah data -->
-                                        <i class="fas fa-edit fa-shake"></i>&nbsp;
-                                        Ubah DUDIKA
-                                    </a>
-                                </li>
-
-                            <?php } ?>
-
-                            <li>
-                                <a href="../list.php" class="dropdown-item">
-                                    <!-- icon list -->
-                                    <i class="fas fa-list-alt fa-bounce"></i>&nbsp;
-                                    Daftar DUDIKA
-                                </a>
-                            </li>
-
-                            <?php if (@$_SESSION['admin'] == 'admin') { ?>
-                                <?php
-                                if (@$admin == true) {
-                                    $_ll = "../";
-                                } else {
-                                    $_ll = "";
-                                }
-                                ?>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li>
-                                    <a href="<?= $_ll; ?>data" class="dropdown-item">
-                                        <!-- icon back -->
-                                        <i class="fas fa-database text-danger"></i>&nbsp;
-                                        Input Data
-                                    </a>
-                                </li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li>
-                                    <a href="<?= $_ll; ?>app/brotkes.php" class="dropdown-item">
-                                        <!-- icon back -->
-                                        <i class="far fa-message text-warning"></i>&nbsp;
-                                        Pesan Broadcast
-                                    </a>
-                                </li>
-                            <?php } ?>
-                            
-                            <?php if (@$_SESSION['admin']) { ?>
-                                <li>
-                                    <a href="<?= $_ll; ?>app/chatbot.php" class="dropdown-item">
-                                        <!-- icon back -->
-                                        <i class="far fa-message text-success"></i>&nbsp;
-                                        Pesan Whatsapp Presensi
-                                    </a>
-                                </li>
-                            <?php } ?>
-
-                            <?php if (@$admin == true) { ?>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li>
-                                    <a href="../admin" class="dropdown-item">
-                                        <!-- icon back -->
-                                        <i class="fas fa-arrow-left fa-fade"></i>&nbsp;
-                                        Kembali
-                                    </a>
-                                </li>
-                            <?php } ?>
-
-                        </ul>
-                    </div>
-                    <!---->
-
-                <?php } else { ?>
-                    <!-- button about -->
-                    <button type="button" class="btn btn-light nganan2 btn-sm border-0" data-bs-toggle="modal" data-bs-target="#aboutinfo">
-                        <!-- info tanya -->
-                        <i class="fas fa-question-circle fa-shake text-info"></i>&nbsp;
+                <style>
+                    .dropdown-admin {
+                        position: absolute;
+                        right: 0px;
+                        margin-right: 160px;
+                    }
+                </style>
+                <!---->
+                <div class="dropdown dropdown-admin">
+                    <button class="btn btn-warning btn-sm dropdown-toggle border-0" type="button" data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        <i class="fas fa-user fa-shake"></i>&nbsp;
+                        Menu Admin
                     </button>
-                    <a class="btn btn-light btn-sm nganan border-0" data-bs-toggle="modal" data-bs-target="#adminlogin">
-                        <!-- icon admin -->
-                        &nbsp;<i class="fas fa-user-cog fa-fade"></i>&nbsp;Login
-                    </a>
-                    <!-- <a href="admin" class="btn nganan2 border-0 btn-sm btn-warning">Admin</a> -->
-                <?php } ?>
-                <?php } else {
-                if (@$_SESSION['userdudi']) {
-                ?>
-                    <a href="../admin/logout.php" class="btn btn-sm btn-danger nganan border-0 text-light">
-                        <!-- icon log out -->
-                        <i class="fas fa-sign-out-alt fa-beat-fade"></i>&nbsp;
-                        Logout
-                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="<?= $link; ?>../admin" class="dropdown-item">
+                                <i class="fas fa-user-cog"></i>&nbsp;
+                                Halaman Admin
+                            </a>
+                        </li>
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+
+
+                        <?php if (@$_SESSION['admin'] == 'admin' || @$_SESSION['admin'] == 'pembimbing') {
+                            if (@$admin == true) {
+                                $_ll = "../";
+                            } else {
+                                $_ll = "";
+                            }
+                            ?>
+                            <li>
+                                <a href="<?= $_ll; ?>app/inputabsen.php" class="dropdown-item">
+                                    <!-- icon back -->
+                                    <i class="far fa-edit text-success"></i>&nbsp;
+                                    Input Absen
+                                </a>
+                            </li>
+                        <?php } ?>
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <a href="<?= $link; ?>rekapabsensiswa.php" class="dropdown-item">
+                                <!-- icon list user -->
+                                <i class="fas fa-list fa-bounce"></i>&nbsp;
+                                Rekap Absensi Siswa
+                            </a>
+                        </li>
+                        <li>
+                            <a href="<?= $link; ?>datasiswa.php" class="dropdown-item">
+                                <!-- icon list user -->
+                                <i class="fas fa-users fa-flip"></i>&nbsp;
+                                Daftar Siswa
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="<?= $link; ?>recent.php" class="dropdown-item">
+                                <!-- icon list -->
+                                <i class="fas fa-history fa-spin fa-spin-reverse"></i>&nbsp;
+                                Riwayat Pendaftaran
+                            </a>
+                        </li>
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+
+                        <li>
+                            <a href="<?= $link; ?>pembimbing.php" class="dropdown-item">
+                                <!-- icon list user -->
+                                <i class="fas fa-list fa-bounce"></i>&nbsp;
+                                Data Pembimbing
+                            </a>
+                        </li>
+
+                        <?php if (@$_SESSION['admin'] == 'admin') { ?>
+                            <li>
+                                <a href="<?= $link; ?>tambahpembimbing.php?akses=tambah" class="dropdown-item">
+                                    <!-- icon ubah data -->
+                                    <i class="fas fa-plus fa-beat"></i>&nbsp;
+                                    Tambah Pembimbing
+                                </a>
+                            </li>
+
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+
+                            <li>
+                                <a href="<?= $link; ?>tambahdudi.php" class="dropdown-item">
+                                    <!-- icon tambah data -->
+                                    <i class="fas fa-plus fa-beat"></i>&nbsp;
+                                    Tambah DUDIKA
+                                </a>
+                            </li>
+
+                            <li>
+                                <a href="<?= $link; ?>ubahdudi.php" class="dropdown-item">
+                                    <!-- icon ubah data -->
+                                    <i class="fas fa-edit fa-shake"></i>&nbsp;
+                                    Ubah DUDIKA
+                                </a>
+                            </li>
+
+                        <?php } ?>
+
+                        <li>
+                            <a href="../list.php" class="dropdown-item">
+                                <!-- icon list -->
+                                <i class="fas fa-list-alt fa-bounce"></i>&nbsp;
+                                Daftar DUDIKA
+                            </a>
+                        </li>
+
+                        <?php if (@$_SESSION['admin'] == 'admin') { ?>
+                            <?php
+                            if (@$admin == true) {
+                                $_ll = "../";
+                            } else {
+                                $_ll = "";
+                            }
+                            ?>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a href="<?= $_ll; ?>data" class="dropdown-item">
+                                    <!-- icon back -->
+                                    <i class="fas fa-database text-danger"></i>&nbsp;
+                                    Input Data
+                                </a>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a href="<?= $_ll; ?>app/brotkes.php" class="dropdown-item">
+                                    <!-- icon back -->
+                                    <i class="far fa-message text-warning"></i>&nbsp;
+                                    Pesan Broadcast
+                                </a>
+                            </li>
+                        <?php } ?>
+
+                        <?php if (@$_SESSION['admin']) { ?>
+                            <li>
+                                <a href="<?= $_ll; ?>app/chatbot.php" class="dropdown-item">
+                                    <!-- icon back -->
+                                    <i class="far fa-message text-success"></i>&nbsp;
+                                    Pesan Whatsapp Presensi
+                                </a>
+                            </li>
+                        <?php } ?>
+
+                        <?php if (@$admin == true) { ?>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a href="../admin" class="dropdown-item">
+                                    <!-- icon back -->
+                                    <i class="fas fa-arrow-left fa-fade"></i>&nbsp;
+                                    Kembali
+                                </a>
+                            </li>
+                        <?php } ?>
+
+                    </ul>
+                </div>
+                <!---->
+
+            <?php } else { ?>
+                <!-- button about -->
+                <button type="button" class="btn btn-light nganan2 btn-sm border-0" data-bs-toggle="modal"
+                    data-bs-target="#aboutinfo">
+                    <!-- info tanya -->
+                    <i class="fas fa-question-circle fa-shake text-info"></i>&nbsp;
+                </button>
+                <a class="btn btn-light btn-sm nganan border-0" data-bs-toggle="modal" data-bs-target="#adminlogin">
+                    <!-- icon admin -->
+                    &nbsp;<i class="fas fa-user-cog fa-fade"></i>&nbsp;Login
+                </a>
+                <!-- <a href="admin" class="btn nganan2 border-0 btn-sm btn-warning">Admin</a> -->
+            <?php } ?>
+        <?php } else {
+        if (@$_SESSION['userdudi']) {
+            ?>
+                <a href="../admin/logout.php" class="btn btn-sm btn-danger nganan border-0 text-light">
+                    <!-- icon log out -->
+                    <i class="fas fa-sign-out-alt fa-beat-fade"></i>&nbsp;
+                    Logout
+                </a>
             <?php }
-            } ?>
+    } ?>
 </nav>
 
 
 <!-- Modal -->
-<div class="modal fade" id="adminlogin" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="adminloginLabel" aria-hidden="true">
+<div class="modal fade" id="adminlogin" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="adminloginLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-body">
@@ -285,13 +297,35 @@
                 <form action="<?= $relogin; ?>admin/login.php" method="GET">
                     <!-- Email input -->
                     <div class="form-outline mb-4">
-                        <input type="text" id="form2Example1" name="username" class="form-control" required placeholder="Username" />
+                        <input type="text" id="form2Example1" name="username" class="form-control" required
+                            placeholder="Username" />
                     </div>
 
-                    <!-- Password input -->
-                    <div class="form-outline mb-4">
-                        <input type="password" id="form2Example2" name="password" class="form-control" required placeholder="Password" />
+                    <div class="form-outline mb-4 d-flex">
+                        <input type="password" id="form2Example2" name="password" class="form-control" required
+                            placeholder="Password" />
+                        <button type="button" id="togglePassword" class="btn" onclick="togglePasswordVisibility()">
+                            <i id="eyeIcon" class="far fa-eye-slash"></i>
+                        </button>
                     </div>
+
+                    <script>
+                        function togglePasswordVisibility() {
+                            var passwordField = document.getElementById("form2Example2");
+                            var eyeIcon = document.getElementById("eyeIcon");
+
+                            if (passwordField.type === "password") {
+                                passwordField.type = "text";
+                                eyeIcon.classList.remove("far", "fa-eye-slash");
+                                eyeIcon.classList.add("fas", "fa-eye");
+                            } else {
+                                passwordField.type = "password";
+                                eyeIcon.classList.remove("fas", "fa-eye");
+                                eyeIcon.classList.add("far", "fa-eye-slash");
+                            }
+                        }
+                    </script>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary border-0" data-bs-dismiss="modal">
@@ -372,7 +406,8 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-body modal-about">
-                <button type="button" class="btn-close nganan_pol mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close nganan_pol mt-2" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
                 <h5 class="modal-title" id="aboutinfoLabel">About&nbsp;
                     <i class="fas fa-question-circle text-info"></i>
                 </h5>
@@ -390,13 +425,22 @@
                 </div>
                 <div class="text-about">
                     <p>
-                        Web Application ini dibuat untuk memudahkan para siswa(i) memilih tempat prakerin serta memudahkan pendataan.
-                        Siswa(i) dapat melihat list (daftar) DUDIKA (tempat Prakerin) secara detail, baik nama, alamat, lokasi maps, pembimbing, serta informasi kos dan biaya (jika ada). <br>
-                        Siswa(i) akan memilih tempat prakerin sesuai dengan kuota yang masih tersedia. Siswa(i) tidak perlu mengisi data diri cukup memasukkan NIS, karena semua telah otomatis terisi dari database. <br>
-                        Siswa(i) dapat menghubungi guru pembimbing dari DUDIKA masing-masing melalui tombol chat Whatsapp untuk menanyakan/mengetahui informasi lebih lanjut tentang tempat prakerin yang akan/telah dipilih. <br>
-                        Surat ijin dan sebagaimya telah otomatis dapat dicetak (print) melalui aplikasi web ini. Pembimbing dapat memamtau pendaftaran Siswa(i) dan mengubah pilihan siswa(i) dan mengubah serta menambah info DUDIKA.<br><br>
+                        Web Application ini dibuat untuk memudahkan para siswa(i) memilih tempat prakerin serta
+                        memudahkan pendataan.
+                        Siswa(i) dapat melihat list (daftar) DUDIKA (tempat Prakerin) secara detail, baik nama, alamat,
+                        lokasi maps, pembimbing, serta informasi kos dan biaya (jika ada). <br>
+                        Siswa(i) akan memilih tempat prakerin sesuai dengan kuota yang masih tersedia. Siswa(i) tidak
+                        perlu mengisi data diri cukup memasukkan NIS, karena semua telah otomatis terisi dari database.
+                        <br>
+                        Siswa(i) dapat menghubungi guru pembimbing dari DUDIKA masing-masing melalui tombol chat
+                        Whatsapp untuk menanyakan/mengetahui informasi lebih lanjut tentang tempat prakerin yang
+                        akan/telah dipilih. <br>
+                        Surat ijin dan sebagaimya telah otomatis dapat dicetak (print) melalui aplikasi web ini.
+                        Pembimbing dapat memamtau pendaftaran Siswa(i) dan mengubah pilihan siswa(i) dan mengubah serta
+                        menambah info DUDIKA.<br><br>
 
-                        Segala pertanyaan, dukungan, aduan, kritik dan saran mengenai web aplikasi ini, bisa menghubungi pengembang melalui kontak berikut.<br>
+                        Segala pertanyaan, dukungan, aduan, kritik dan saran mengenai web aplikasi ini, bisa menghubungi
+                        pengembang melalui kontak berikut.<br>
                     </p>
                     <!-- kirim email -->
                     <!-- button grup -->
@@ -405,11 +449,13 @@
                             <i class="fas fa-envelope"></i></a>
                         </a>
                         <!-- instagram -->
-                        <a href="https://www.instagram.com/te.skaneba/" class="btn btn-sm btn-danger border-0" target="_blank">
+                        <a href="https://www.instagram.com/te.skaneba/" class="btn btn-sm btn-danger border-0"
+                            target="_blank">
                             <i class="fab fa-instagram"></i>
                         </a>
                         <!-- whatsapp -->
-                        <a href="https://api.whatsapp.com/send?phone=6282241863393&text=About%20pkl.smknbansari.sch.id%0A%0A" class="btn btn-sm btn-success border-0" target="_blank">
+                        <a href="https://api.whatsapp.com/send?phone=6282241863393&text=About%20pkl.smknbansari.sch.id%0A%0A"
+                            class="btn btn-sm btn-success border-0" target="_blank">
                             <i class="fab fa-whatsapp"></i></a>
                         </a>
                     </div>
@@ -425,3 +471,31 @@
         </div>
     </div>
 </div>
+
+<?php
+function encryptPhoneNumber($number)
+{
+    // Implementasi enkripsi sesuai kebutuhan Anda
+    // Misalnya, enkripsi sederhana XOR
+    if (isset($number) && $number != "") {
+        $encrypted = base64_encode($number);
+    } else {
+        $encrypted = base64_encode("");
+    }
+
+    return $encrypted;
+}
+
+// Fungsi untuk mendekripsi nomor WhatsApp
+function decryptPhoneNumber($encrypted)
+{
+    // Implementasi dekripsi sesuai kebutuhan Anda
+    // Misalnya, dekripsi base64
+    if (isset($encrypted) && $encrypted != "") {
+        $decrypted = base64_decode($encrypted);
+    } else {
+        $decrypted = base64_decode("");
+    }
+
+    return $decrypted;
+}

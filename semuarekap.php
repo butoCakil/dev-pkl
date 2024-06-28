@@ -172,7 +172,7 @@ if ($nis) {
 
                                             $q_presensi = mysqli_query($konek, "SELECT * FROM presensi WHERE timestamp LIKE '%$_gettgl%' AND nis = '$nis'");
                                             $hasil = mysqli_fetch_array($q_presensi);
-                                            $ket = $hasil['ket'];
+                                            $ket = isset($hasil['ket']);
 
                                             if ($ket == "Masuk") {
                                                 $icon_ket = "☑️";

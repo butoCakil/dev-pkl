@@ -61,7 +61,6 @@ if (@$_SESSION['pesan']) {
                             $link_wa = "https://api.whatsapp.com/send?phone=" . @$data["cp"] . "&text=";
                             ?>
                             <a href="<?= $link_wa; ?>" class="btn btn-sm btn-success border-0"><i class="fa-brands fa-whatsapp fa-beat" style="--fa-beat-scale: 1.5; --fa-animation-duration: 1s;"></i></a>
-                            <?= $data['cp']; ?>
                         </td>
                         <?php if (@$_SESSION['admin'] == "admin") { ?>
                             <td class="d-flex justify-content-around">

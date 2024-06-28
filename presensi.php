@@ -53,40 +53,125 @@ $bulan_indonesia = array(
 $bulan_indonesia = $bulan_indonesia[$bulan];
 
 
-if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "presensilagi")) {
+if (@$_POST["nis"] && (@$_POST["akses"] == "presensi" || @$_POST["akses"] == "presensilagi")) {
 
-    $nis = $_GET["nis"];
-    $akses = $_GET["akses"];
+    $nis = $_POST["nis"];
+
+    if (!ctype_digit($nis)) {
+        // NIS bukan angka, kembalikan ke halaman sebelumnya dengan alert
+        echo "<script>alert('NIS harus berupa angka.'); window.history.back();</script>";
+        exit; // Keluar dari skrip PHP setelah menampilkan alert
+    }
+
+    $akses = $_POST["akses"];
 
     // ambil data siswa dari database
     include "koneksi.php";
 
-    // cek dulu di presensi
-    $sql = "SELECT * FROM presensi WHERE nis = '$nis' AND timestamp LIKE '%$tanggal%'";
-    $result = mysqli_query($konek, $sql);
+    // cek ketersediaan data
+    $sql_datasiswa = "SELECT * FROM datasiswa WHERE nis = ?";
+    $stmt_datasiswa = mysqli_prepare($konek, $sql_datasiswa);
+    mysqli_stmt_bind_param($stmt_datasiswa, "s", $nis);
+    mysqli_stmt_execute($stmt_datasiswa);
+    $result_datasiswa = mysqli_stmt_get_result($stmt_datasiswa);
+    $row = mysqli_fetch_assoc($result_datasiswa);
+    $adadata = mysqli_num_rows($result_datasiswa);
 
-    // jika sudah ada maka redirect ke halaman preview
-    if (mysqli_num_rows($result) > 0 && @$_GET["akses"] != "presensilagi") {
-        // header("location: prevpresensi.php?nis=$nis&akses=presensi");
-        echo "<script>
-                window.location.href = 'prevpresensi.php?nis=$nis&akses=presensi';
-            </script>";
+    // dpatkan nick sebagai sandi
+    $nick = $row["nama"];
+    $db_pass = $row["password"];
+    $nick_no_spaces = str_replace(' ', '', $nick);
+    $nick_lower = strtolower($nick_no_spaces);
+    $nick_8_chars = substr($nick_lower, 0, 8);
+
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $inputform = isset($_POST['form']) ? $_POST['form'] : '';
+    $status_ganti_password = false;
+
+    // Cek apakah password disubmit
+    if (isset($password)) {
+        // Jika password tidak diisi
+        if (empty($password)) {
+            echo '<script>alert("Harus masukkan password");</script>';
+            echo '<script>window.history.back();</script>';
+            exit;
+        }
+
+        // Jika password tidak ada di database, cek ke password default
+        if (empty($db_pass)) {
+            if ($password == $nick_8_chars) {
+                $status_ganti_password = true;
+                // echo '<script>alert("Password default");</script>';
+                // echo "Password benar";
+                // Lanjutkan proses sesuai kebutuhan
+            } else {
+                echo '<script>alert("Password default salah");</script>';
+                echo '<script>window.history.back();</script>';
+                exit;
+            }
+        } else {
+            // Jika password ada di database, cek dengan md5
+            if ($inputform == "form") {
+                if ($password == $db_pass) {
+                    // Lanjutkan proses sesuai kebutuhan
+                    $status_ganti_password = false;
+                    // echo '<script>alert("Password Sudah diganti");</script>';
+                } else {
+                    echo '<script>alert("Password form salah");</script>';
+                    echo '<script>window.history.back();</script>';
+                    exit;
+                }
+            } else {
+                if (md5($password) == $db_pass) {
+                    // Lanjutkan proses sesuai kebutuhan
+                    $status_ganti_password = false;
+                    // echo '<script>alert("Password Sudah diganti");</script>';
+                } else {
+                    echo '<script>alert("Password salah");</script>';
+                    echo '<script>window.history.back();</script>';
+                    exit;
+                }
+            }
+        }
+    } else {
+        echo "Harus masukkan password";
+        // munculkan alert dan kembali ke halaman sebelumnya
+        echo '<script>alert("Harus masukkan password");</script>';
+        echo '<script>window.history.back();</script>';
+        exit;
     }
 
-    $sql = "SELECT * FROM datasiswa WHERE nis = '" . $nis . "'";
-    $result = mysqli_query($konek, $sql);
-    $row = mysqli_fetch_assoc($result);
-    $adadata = mysqli_num_rows($result);
+    // cek dulu di presensi
+    $sql_presensi = "SELECT * FROM presensi WHERE nis = ? AND timestamp LIKE ?";
+    $stmt_presensi = mysqli_prepare($konek, $sql_presensi);
+    mysqli_stmt_bind_param($stmt_presensi, "ss", $nis, $tanggal_param);
+    $tanggal_param = "%$tanggal%";
+    mysqli_stmt_execute($stmt_presensi);
+    $result_presensi = mysqli_stmt_get_result($stmt_presensi);
 
-    $sql2 = "SELECT * FROM duditerisi WHERE nis = '" . $nis . "'";
-    $result2 = mysqli_query($konek, $sql2);
-    $row2 = mysqli_fetch_assoc($result2);
-    $kode_dudi = $row2['kode'];
+    // jika sudah ada maka redirect ke halaman preview
+    if (mysqli_num_rows($result_presensi) > 0 && @$_POST["akses"] != "presensilagi") {
+        echo "<script>
+            window.location.href = 'prevpresensi.php?nis=$nis&akses=presensi';
+          </script>";
+        exit; // menghentikan eksekusi lebih lanjut jika mengarahkan ke halaman preview
+    }
 
-    $pembimbing_query = "SELECT * FROM datadudi WHERE kode = '$kode_dudi'";
-    $query_pembimbing = mysqli_query($konek, $pembimbing_query);
+    $sql_duditerisi = "SELECT * FROM duditerisi WHERE nis = ?";
+    $stmt_duditerisi = mysqli_prepare($konek, $sql_duditerisi);
+    mysqli_stmt_bind_param($stmt_duditerisi, "s", $nis);
+    mysqli_stmt_execute($stmt_duditerisi);
+    $result_duditerisi = mysqli_stmt_get_result($stmt_duditerisi);
+    $row2 = mysqli_fetch_assoc($result_duditerisi);
+    $kode_dudi = @$row2['kode'];
+
+    $pembimbing_query = "SELECT * FROM datadudi WHERE kode = ?";
+    $stmt_pembimbing = mysqli_prepare($konek, $pembimbing_query);
+    mysqli_stmt_bind_param($stmt_pembimbing, "s", $kode_dudi);
+    mysqli_stmt_execute($stmt_pembimbing);
+    $query_pembimbing = mysqli_stmt_get_result($stmt_pembimbing);
     $data_pembimbing = mysqli_fetch_array($query_pembimbing);
-?>
+    ?>
 
     <style>
         h1 {
@@ -103,25 +188,11 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
             margin: 5px 0;
         }
 
-        .form-presensi {
-            /* form ke tengah */
-            margin-top: 0px;
-            margin-left: auto;
-            margin-right: auto;
-            width: 50%;
-        }
-
-        .form-presensi .alert {
-            font-size: 0.8em;
-            margin: -30px 0 0 0;
-            padding: 0 10px;
-        }
-
-        .form-presensi .label-datadiri-presensi label {
+        .label-datadiri-presensi label {
             width: 100px;
         }
 
-        .form-presensi .label-datadiri-presensi strong {
+        .label-datadiri-presensi strong {
             margin-left: 50px;
             width: 150px;
         }
@@ -156,13 +227,13 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
             margin-bottom: -20px;
         }
 
-        .form-presensi .preview {
+        .preview {
             padding: 10px;
             border: 1px solid #ccc;
             width: 0 auto;
         }
 
-        .form-presensi .preview img {
+        .preview img {
             height: 100px;
             width: 100px;
             object-fit: contain;
@@ -170,7 +241,7 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
             /* object-position: center; */
         }
 
-        .form-presensi .preview #preview {
+        .preview #preview {
             margin: 0 auto;
         }
 
@@ -299,47 +370,132 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
     </style>
 
     <div class="container">
-        <?php if ($adadata) { ?>
-            <?php if ($akses != "presensilagi") { ?>
+        <?php if ($adadata) {
+            if ($akses != "presensilagi") { ?>
                 <h1>Presensi Prakerin</h1>
             <?php } else { ?>
                 <h1>Pengisian Jurnal Harian</h1>
             <?php } ?>
-            <!-- alert info dengan button close -->
-            
-            <!--<div id="liveAlertPlaceholder"></div>-->
-            <!--<button type="button" class="btn btn-primary" id="liveAlertBtn">Info</button>-->
-            
-            <!--<div class="info-alert-presensi alert alert-warning alert-dismissible fade show" role="alert">-->
-            <!--    <strong>Info!</strong>-->
-            <!--    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>-->
-            <!--    <p>-->
-            <!--        <li>-->
-            <!--            <strong>Klik tombol "Kamera"</strong> untuk mengambil foto dari kamera.-->
-            <!--        </li>-->
 
-            <!--        <?php if ($akses != "presensilagi") { ?>-->
-            <!--            <li>-->
-            <!--                <strong>Pilih "Keterangan"</strong> untuk mengisi keterangan Presensi (Masuk, Pulang, Ijin, Sakit, atau Libur).-->
-            <!--            </li>-->
-            <!--            <li>-->
-            <!--                <strong>Isikan catatan</strong> kegiatan hari ini sebagai <strong>Jurnal harian</strong>-->
-            <!--            </li>-->
-            <!--        <?php } else { ?>-->
-            <!--            <li>-->
-            <!--                <strong>Isikan catatan</strong> sebagai <strong>Jurnal harian</strong>-->
-            <!--            </li>-->
-            <!--        <?php } ?>-->
+            <?php if ($status_ganti_password == true) { ?>
+                <div class="alert alert-primary mb-3 text-center" role="alert">
+                    Segera Ganti password<br>
+                    <button class="btn btn-sm btn-primary border-0" data-bs-toggle="modal"
+                        data-bs-target="#modalGantiPassword">Ganti
+                        Password</button>
+                </div>
 
-            <!--        <li>-->
-            <!--            <strong>Klik tombol "Upload"</strong> untuk menyelesaikanya.-->
-            <!--        </li>-->
-            <!--    </p>-->
-            <!--</div>-->
+                <!-- Modal -->
+                <div class="modal fade" id="modalGantiPassword" tabindex="-1" aria-labelledby="modalGantiPasswordLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalGantiPasswordLabel">Ganti Password</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Form untuk mengganti password -->
+                                <form action="app/proses_ganti_password.php" method="POST" onsubmit="return validateForm()">
+                                    <input type="hidden" name=nis value="<?= $nis; ?>">
+                                    <input type="hidden" name=password value="<?= $password ?>">
+                                    <input type="hidden" name=token value="<?= $password . $nis; ?>">
+                                    <div class="mb-3">
+                                        <label for="inputPasswordBaru" class="form-label">Password Baru</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" id="inputPasswordBaru" name="new_password"
+                                                required>
+                                            <button class="btn btn-outline-secondary" type="button" id="togglePasswordBaru">
+                                                <i class="fa fa-eye-slash"></i>
+                                            </button>
+                                        </div>
+                                        <div id="passwordLengthError" class="text-danger" style="display: none;">Minimal 8 karakter.
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="confirmPasswordBaru" class="form-label">Konfirmasi Password Baru</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" id="confirmPasswordBaru"
+                                                name="confirm_password" required>
+                                            <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPasswordBaru">
+                                                <i class="fa fa-eye-slash"></i>
+                                            </button>
+                                        </div>
+                                        <div id="passwordError" class="text-danger" style="display: none;">Password tidak sesuai.
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                                    </div>
+                                </form>
 
-            <div class="col form-presensi">
-                <form action="_presensi.php" method="post" enctype="multipart/form-data">
+                                <!-- Script untuk toggle tampilan password -->
+                                <script>
+                                    // Function untuk toggle tampilan password
+                                    function togglePasswordVisibility(inputId, buttonId) {
+                                        var passwordInput = document.getElementById(inputId);
+                                        var toggleButton = document.getElementById(buttonId);
 
+                                        if (passwordInput.type === "password") {
+                                            passwordInput.type = "text";
+                                            toggleButton.innerHTML = '<i class="fa fa-eye"></i>';
+                                        } else {
+                                            passwordInput.type = "password";
+                                            toggleButton.innerHTML = '<i class="fa fa-eye-slash"></i>';
+                                        }
+                                    }
+
+                                    // Event listener untuk toggle password baru
+                                    document.getElementById('togglePasswordBaru').addEventListener('click', function () {
+                                        togglePasswordVisibility('inputPasswordBaru', 'togglePasswordBaru');
+                                    });
+
+                                    // Event listener untuk toggle konfirmasi password baru
+                                    document.getElementById('toggleConfirmPasswordBaru').addEventListener('click', function () {
+                                        togglePasswordVisibility('confirmPasswordBaru', 'toggleConfirmPasswordBaru');
+                                    });
+
+                                    // Validasi form sebelum submit
+                                    function validateForm() {
+                                        var newPassword = document.getElementById('inputPasswordBaru').value;
+                                        var confirmPasswordBaru = document.getElementById('confirmPasswordBaru').value;
+                                        var passwordError = document.getElementById('passwordError');
+                                        var passwordLengthError = document.getElementById('passwordLengthError');
+
+                                        // Check if password meets minimum length requirement
+                                        if (newPassword.length < 8) {
+                                            passwordLengthError.style.display = 'block';
+                                            passwordError.style.display = 'none'; // Hide mismatch error if length is insufficient
+                                            return false;
+                                        } else {
+                                            passwordLengthError.style.display = 'none';
+
+                                            // Check if passwords match
+                                            if (newPassword !== confirmPasswordBaru) {
+                                                passwordError.style.display = 'block';
+                                                return false;
+                                            } else {
+                                                passwordError.style.display = 'none';
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php } ?>
+
+            <!-- <div class="col form-presensi"> -->
+            <style>
+                .forminfo {
+                    font-size: 14px;
+                }
+            </style>
+            <div class="">
+                <form action="_presensi.php" method="post" class="forminfo" enctype="multipart/form-data">
                     <?php if ($akses != "presensilagi") { ?>
                         <div class="alert alert-secondary">
                             <p>
@@ -361,16 +517,31 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
                             </div>
                             <div class="label-datadiri-presensi">
                                 <label for="">Nama DUDIKA</label>
-                                <strong>:&nbsp;<?= $row2['namadudi']; ?></strong><br>
+                                <strong>:&nbsp;<?= isset($row2['namadudi']) ? $row2['namadudi'] : "-Belum ada Data-"; ?></strong><br>
                             </div>
                             <div class="label-datadiri-presensi">
                                 <label for="">Hari, tanggal</label>
                                 <strong>:&nbsp;<?= $hari_indonesia . ", " . $tgl . " " . $bulan_indonesia . " " . $thn; ?></strong><br>
                             </div>
                             <div class="label-datadiri-presensi">
-                                <label>Jam</label>
+                                <label>Waktu</label>
                                 <strong>:&nbsp;<?= $jam; ?></strong><br>
                             </div>
+                            </p>
+                        </div>
+
+                        <style>
+                            .alert-info-tombol-kamera {
+                                font-size: 12px;
+                                text-align: center;
+                            }
+                        </style>
+
+                        <div class="alert-info-tombol-kamera alert alert-warning">
+                            <p>
+                                <i class="fas fa-circle-info fa-bounce"></i>
+                                Foto yang diupload adalah foto selfie berlatar belakang tempat Prakerin / kegiatan selama
+                                Prakerin.
                             </p>
                         </div>
                     <?php } ?>
@@ -382,43 +553,31 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
                     <input type="hidden" name="kelas" value="<?= $row['kelas']; ?>">
 
                     <div class="form-group input-form-presensi">
-                        <label for="foto">Foto</label>
+                        <label for="foto">Foto
+                            <span class="text-danger">*</span>
+                        </label>
                         <!-- <input type="file" class="form-control" id="foto" name="foto[]" multiple> -->
-                        <div>
 
+                        <div>
                             <?php if ($ua->is_mobile()) { ?>
                                 <div id="tombolkamera">
                                     <label class="custom-file-input custom-file-input-kamera" for="UploadCam"></label>
-                                    <input id="UploadCam" type="file" name="_photos" accept="image/*" style="visibility: hidden" onchange="showPreview(event);" capture="environment" required oninvalid="alert('Ambil Foto Kamera terlebih dahulu!');">
+                                    <input id="UploadCam" type="file" name="_photos" accept="image/*" style="visibility: hidden"
+                                        onchange="showPreview(event);" capture="environment" required
+                                        oninvalid="alert('Ambil Foto Kamera terlebih dahulu!');">
                                 </div>
                             <?php } else { ?>
                                 <div id="tombolfile">
                                     <label class="custom-file-input custom-file-input-file" for="fileupload"></label>
                                     <!--<input id="fileupload" type="button" multiple="multiple" name="file_photos[]" accept="image/*" style="visibility: hidden" required oninvalid="alert('Pilih Beberapa file foto terlebih dahulu!');">-->
-                                    <button id="fileupload" type="button" multiple="multiple" name="file_photos[]" style="visibility: hidden" required onclick="alert('Gunakan SmartPhone untuk mengambil Foto / Non-Aktifkan mode Dekstop');" />
+                                    <button id="fileupload" type="button" multiple="multiple" name="file_photos[]"
+                                        style="visibility: hidden" required
+                                        onclick="alert('Gunakan SmartPhone untuk mengambil Foto / Non-Aktifkan mode Dekstop');" />
                                 </div>
                             <?php } ?>
                         </div>
-
-                        <style>
-                            .input-form-presensi .alert-info-tombol-kamera p {
-                                font-size: 10px;
-                                margin: 0;
-                            }
-
-                            .input-form-presensi .alert-info-tombol-kamera {
-                                margin-bottom: 5px;
-                                padding: 5px;
-                            }
-                        </style>
-
-                        <span class="alert-info-tombol-kamera alert alert-info">
-                            <p>
-                                <i class="fas fa-circle-info fa-bounce"></i>
-                                Foto yang diupload adalah foto selfie berlatar belakang tempat Prakerin / kegiatan selama Prakerin.
-                            </p>
-                        </span>
                     </div>
+
                     <div class="form-group preview">
                         <img id="dvPreview">
                         <div id="preview"></div>
@@ -426,8 +585,9 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
 
                     <?php if ($akses != "presensilagi") { ?>
                         <!-- input select keterangan -->
-                        <div class="form-group input-form-presensi">
-                            <label for="keterangan">Keterangan (Pilih)</label>
+                        <div class="form-group input-form-presensi mb-3 mt-3">
+                            <label for="keterangan">Keterangan (Pilih)
+                                <span class="text-danger">*</span></label>
                             <select class="form-control" id="keterangan" name="keterangan" required>
                                 <!--<option value="">Pilih Keterangan</option>-->
                                 <option value="Masuk">Masuk</option>
@@ -437,23 +597,51 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
                             </select>
                         </div>
                         <!-- input text area -->
-                        <div class="form-group input-form-presensi">
-                            <label for="catatanjurnal">Catatan / Jurnal</label>
-                            <textarea class="form-control" id="catatanjurnal" name="catatanjurnal" rows="4" placeholder="Isikan juga Agenda/rencana/kegiatan hari ini di tempat prakerin (PKL)." required></textarea>
+                        <div class="form-group input-form-presensi mb-3">
+                            <label for="catatanjurnal">Catatan / Jurnal
+                                <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" id="catatanjurnal" name="catatanjurnal" rows="4"
+                                placeholder="Isikan juga Agenda/rencana/kegiatan hari ini di tempat prakerin (PKL)."
+                                required></textarea>
                         </div>
                     <?php } ?>
 
                     <?php
-                    $sqlcek = "SELECT * FROM presensi WHERE nis = '$nis' AND kode = '" . $row2['kode'] . "' AND timestamp LIKE '%$tanggal%'";
-                    $querycek = mysqli_query($konek, $sqlcek);
-                    $rowcek = mysqli_num_rows($querycek);
+                    // Persiapkan kueri SQL dengan prepared statement
+                    $sqlcek = "SELECT COUNT(*) FROM presensi WHERE nis = ? AND kode = ? AND timestamp LIKE ?";
+                    $stmt = $konek->prepare($sqlcek);
+
+                    if ($stmt) {
+                        // Bind parameter ke prepared statement
+                        $nis_param = $nis;
+                        $kode_param = isset($row2['kode']) ? $row2['kode'] : "";
+                        $tanggal_param = "%$tanggal%";
+                        $stmt->bind_param("sss", $nis_param, $kode_param, $tanggal_param);
+
+                        // Lakukan eksekusi prepared statement
+                        $stmt->execute();
+
+                        // Ambil hasil dari prepared statement
+                        $stmt->bind_result($rowcek);
+                        $stmt->fetch();
+
+                        // Gunakan $rowcek untuk keperluan selanjutnya (jumlah baris yang ditemukan)
+            
+                        // Bebaskan prepared statement
+                        $stmt->close();
+                    } else {
+                        // Handle kesalahan jika persiapan kueri gagal
+                        echo "Error: " . $konek->error;
+                    }
 
                     if ($rowcek > 0) {
-                    ?>
+                        ?>
                         <!-- input text area -->
-                        <div class="form-group input-form-presensi">
+                        <div class="form-group input-form-presensi mt-3 mb-3">
                             <label for="catatanjurnal">Catatan / Jurnal</label>
-                            <textarea class="form-control" id="catatanjurnal" name="catatanjurnal" rows="4" placeholder="Isikan catatan/jurnal kegiatan hari ini di tempat prakerin sesuai foto."></textarea>
+                            <textarea class="form-control" id="catatanjurnal" name="catatanjurnal" rows="4"
+                                placeholder="Isikan catatan/jurnal kegiatan hari ini di tempat prakerin sesuai foto."></textarea>
                         </div>
                     <?php } ?>
 
@@ -461,10 +649,23 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
                     <input type="hidden" name="tok" value="qnNDCgY0F4F3MVna2LoF">
 
                     <div class="tombol-upload-presensi">
-                        <button type="submit" class="btn btn-primary btn-sm border-0">
-                            <!-- <i class="fas fa-upload fa-bounce"></i>&nbsp; -->
-                            <i class="fa-solid fa-cloud-arrow-up fa-beat-fade"></i> Upload
-                        </button>
+                        <?php
+                        if (isset($row2['kode'])) {
+                            ?>
+                            <button type="submit" class="btn btn-primary btn-sm border-0">
+                                <!-- <i class="fas fa-upload fa-bounce"></i>&nbsp; -->
+                                <i class="fa-solid fa-cloud-arrow-up fa-beat-fade"></i> Upload
+                            </button>
+                            <?php
+                        } else {
+                            ?>
+                            <button onclick="alert('Belum bisa presensi, Dudi belum terhubung.');"
+                                class="btn btn-primary btn-sm border-0">
+                                <i class="fa-solid fa-cloud-arrow-up fa-beat-fade"></i> Upload
+                            </button>
+                            <?php
+                        }
+                        ?>
                         <a href="index.php" class="btn btn-dark btn-sm border-0">
                             <!-- <i class="fas fa-times fa-beat-fade"></i> -->
                             <i class="fa-solid fa-xmark"></i> Batal
@@ -472,45 +673,52 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
                         <a href="rekap.php?nis=<?= $row['nis']; ?>&akses=rekapabsen" class="btn btn-success btn-sm border-0">
                             <i class="fas fa-file-alt"></i> Rekap&nbsp;Saya
                         </a>
-                        <!--<button type="button" class="btn btn-secondary btn-sm border-0" onClick="document.location.reload(true)">-->
-                            <!-- icon reload -->
-                        <!--    <i class=" fas fa-redo-alt fa-spin"></i> Refresh-->
-                        <!--</button>-->
                     </div>
-                </form>
-                <div class="input-group input-group-sm mt-3 mb-5">
-                    <span class="input-group-text bg-dark text-light gradient">Pembimbing </span>
-                    <input type="text" class="form-control" value="<?= $data_pembimbing["pembimbing"]; ?>" disabled>
+
                     <?php
-                    $msg_nama = str_replace(" ", "%20", $row['nama']);
-                    $msg_kelas = str_replace(" ", "%20", $row['kelas']);
-                    $dudika_ = str_replace(" ", "%20", $row2['namadudi']);
-                    $link_wa = "https://api.whatsapp.com/send?phone=" . $data_pembimbing["nowa"] . "&text=Assalamu'alaikum,%0ASaya%20" . $msg_nama . "%0AKelas:%20" . $msg_kelas . ",%0Atempat%20prakerin:%20" . $dudika_ . "%0AMaaf%20mengganggu%20waktunya,%20Saya%20ingin%20..";
-                    ?>
-                    <span class="input-group-text bg-success btn-success"><a href="<?= $link_wa; ?>" class="text-light"><i class="fa-brands fa-whatsapp fa-beat" style="--fa-beat-scale: 1.5; --fa-animation-duration: 1s;"></i></a></span>
-                </div>
-                
-                <div class="info-alert-presensi alert alert-danger alert-dismissible fade show pb-2" role="alert">
+                    if (isset($row2['kode'])) {
+                        ?>
+                    </form>
+                    <div class="input-group input-group-sm mt-3 mb-5">
+                        <span class="input-group-text bg-dark text-light gradient">Pembimbing </span>
+                        <input type="text" class="form-control" value="<?= @$data_pembimbing["pembimbing"]; ?>" disabled>
+                        <?php
+                        $msg_nama = str_replace(" ", "%20", isset($row['nama'])) ? $row['nama'] : '';
+                        $msg_kelas = str_replace(" ", "%20", isset($row['kelas'])) ? $row['kelas'] : '';
+                        $dudika_ = str_replace(" ", "%20", isset($row2['namadudi'])) ? $row2['namadudi'] : '';
+                        $link_wa = "https://api.whatsapp.com/send?phone=" . isset($data_pembimbing["nowa"]) ? @$data_pembimbing["nowa"] : '' . "&text=Assalamu'alaikum,%0ASaya%20" . $msg_nama . "%0AKelas:%20" . $msg_kelas . ",%0Atempat%20prakerin:%20" . $dudika_ . "%0AMaaf%20mengganggu%20waktunya,%20Saya%20ingin%20..";
+                        ?>
+                        <span class="input-group-text bg-success btn-success">
+                            <a href="<?= $link_wa; ?>" class="text-light"><i class="fa-brands fa-whatsapp fa-beat"
+                                    style="--fa-beat-scale: 1.5; --fa-animation-duration: 1s;"></i>
+                            </a>
+                        </span>
+                    </div>
+
+                <?php } ?>
+
+                <div class="info-alert-presensi alert alert-info alert-dismissible fade show pb-2" role="alert">
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     <p class="p-2 mb-0">
-                    <strong>Bantuan (?)</strong><br>
+                        <strong>Bantuan (?)</strong><br>
                         Jika ada kendala saat presensi prakerin,<br>silakan hubungi Pak Benny<br>(Sertakan Screenshoot)
-                             
-                         <?php
-                            $msg_nama = str_replace(" ", "%20", $row['nama']);
-                            $msg_kelas = str_replace(" ", "%20", $row['kelas']);
-                            $dudika_ = str_replace(" ", "%20", $row2['namadudi']);
-                             $link_wa = "https://api.whatsapp.com/send?phone=6282241863393&text=Assalamu'alaikum,%0ASaya%20" . $msg_nama . "%0AKelas:%20" . $msg_kelas . ",%0Atempat%20prakerin:%20" . $dudika_ . "%0AMaaf%20mengganggu%20waktunya,%20Saya%20ingin%20melaporkan%20kendala%20dalam%20presensi%0AKendalanya: ...";
+
+                        <?php
+                        $msg_nama = str_replace(" ", "%20", @$row['nama']);
+                        $msg_kelas = str_replace(" ", "%20", @$row['kelas']);
+                        $dudika_ = str_replace(" ", "%20", @$row2['namadudi']);
+                        $link_wa = "https://api.whatsapp.com/send?phone=6282241863393&text=Assalamu'alaikum,%0ASaya%20" . $msg_nama . "%0AKelas:%20" . $msg_kelas . ",%0Atempat%20prakerin:%20" . $dudika_ . "%0AMaaf%20mengganggu%20waktunya,%20Saya%20ingin%20melaporkan%20kendala%20dalam%20presensi%0AKendalanya: ...";
                         ?>
                     </p>
-                    <a href="<?= $link_wa; ?>" class="bg-success btn-success text-light p-1 m-0 rounded text-decoration-none">Chat WA <i class="fa-brands fa-whatsapp" style="--fa-beat-scale: 1.5; --fa-animation-duration: 1s;"></i></a>
+                    <a href="<?= $link_wa; ?>"
+                        class="bg-success btn-success text-light p-1 m-0 rounded text-decoration-none">Chat WA <i
+                            class="fa-brands fa-whatsapp" style="--fa-beat-scale: 1.5; --fa-animation-duration: 1s;"></i></a>
                 </div>
             </div>
-            
+
         <?php } else { ?>
             <h1>Tidak ada data</h1>
             <a href="index.php" class="btn btn-dark btn-sm border-0">
-                <!-- <i class="fas fa-times fa-beat-fade"></i> -->
                 <i class="fa-solid fa-arrow-left"></i>&nbsp;Kembali
             </a>
         <?php } ?>
@@ -547,7 +755,7 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
 
                 var reader = new FileReader();
 
-                reader.addEventListener("load", function() {
+                reader.addEventListener("load", function () {
                     var image = new Image();
                     image.height = 100;
                     image.title = file.name;
@@ -560,95 +768,22 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
         }
 
         document.querySelector('#fileupload').addEventListener("change", previewImages);
-
-
-    //     const alertPlaceholder = document.getElementById('liveAlertPlaceholder')
-    //     const appendAlert = (message, type) => {
-    //     const wrapper = document.createElement('div')
-    //     wrapper.innerHTML = [
-    //         `<div class="alert alert-${type} alert-dismissible" role="alert">`,
-    //         `   <div>${message}</div>`,
-    //         '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
-    //         '</div>'
-    //       ].join('')
-        
-    //     alertPlaceholder.append(wrapper)
-    //     }
-        
-    //     const alertTrigger = document.getElementById('liveAlertBtn')
-    //     if (alertTrigger) {
-    //       alertTrigger.addEventListener('click', () => {
-    //         appendAlert('
-    //         <p>
-    //                 <li>
-    //                     <strong>Klik tombol "Kamera"</strong> untuk mengambil foto dari kamera.
-    //                 </li>
-
-    //                 <?php if ($akses != "presensilagi") { ?>
-    //                     <li>
-    //                         <strong>Pilih "Keterangan"</strong> untuk mengisi keterangan Presensi (Masuk, Pulang, Ijin, Sakit, atau Libur).
-    //                     </li>
-    //                     <li>
-    //                         <strong>Isikan catatan</strong> kegiatan hari ini sebagai <strong>Jurnal harian</strong>
-    //                     </li>
-    //                 <?php } else { ?>
-    //                     <li>
-    //                         <strong>Isikan catatan</strong> sebagai <strong>Jurnal harian</strong>
-    //                     </li>
-    //                 <?php } ?>
-
-    //                 <li>
-    //                     <strong>Klik tombol "Upload"</strong> untuk menyelesaikanya.
-    //                 </li>
-    //             </p>
-            
-    //         ', 'success')
-    //       })
-    //     }
     </script>
-
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.3/moment.min.js"></script>
-    <script>
-        $("input").on("change", function() {
-            this.setAttribute(
-                "data-date",
-                moment(this.value, "YYYY-MM-DD")
-                .format(this.getAttribute("data-date-format"))
-            )
-        }).trigger("change")
-
-        $(function() {
-            $('#jam').datetimepicker({
-                use24hours: true,
-                format: 'HH:mm'
-            });
-        });
-    </script>
-
-    <script>
-        $(function() {
-            $('#datetimepicker1').datetimepicker({
-                format: 'HH:mm'
-            });
-
-            $('#datetimepicker2').datetimepicker({
-                format: 'MM/DD/YYYY HH:mm'
-            });
-        });
-    </script> -->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.1/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/js/bootstrap-datetimepicker.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/js/bootstrap-datetimepicker.min.js"></script>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Twitter-bootstrap/3.3.7/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/css/bootstrap-datetimepicker.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/css/bootstrap-datetimepicker.min.css">
 
-<?php } else { ?>
-
-    <?php include "views/header.php" ?>
-    <?php include "views/navbar.php" ?>
+    <?php
+    mysqli_close($konek);
+} else {
+    ?>
     <div class="container">
         <!-- tombol kembali javascript -->
         <script>
@@ -670,5 +805,7 @@ if (@$_GET["nis"] && (@$_GET["akses"] == "presensi" || @$_GET["akses"] == "prese
     </div>
 <?php } ?>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
+    crossorigin="anonymous"></script>
 <?php include "views/footer.php" ?>

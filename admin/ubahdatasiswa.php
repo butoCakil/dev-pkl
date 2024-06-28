@@ -7,28 +7,36 @@ if (@$_SESSION["admin"]) {
         // echo "masuk ubahdatasiswa<br>";
         // printf("<pre>" . print_r(@$_GET) . "</pre>");
 
-        $nis = @$_GET["nis"];
-        $namasiswa = @$_GET["nama"];
-        $kodedudi = @$_GET["kodedudi"];
+        $nis = isset($_GET["nis"]) ? $_GET["nis"] : null;
+        $namasiswa = isset($_GET["nama"]) ? $_GET["nama"] : null;
+        $kodedudi = isset($_GET["kodedudi"]) ? $_GET["kodedudi"] : null;
 
-        // print_r("NIS : " . $nis . "<br>");
-        // print_r("Nama Siswa : " . $namasiswa . "<br>");
-        // print_r("Kode DU/DI : " . $kodedudi . "<br>");
-
-        // cek ke duditerisi
         include "../koneksi.php";
 
-        $sql = "SELECT * FROM duditerisi WHERE nis = '$nis'";
-        $query = mysqli_query($konek, $sql);
+        $sql = "SELECT * FROM duditerisi WHERE nis = ?";
+        $stmt = mysqli_prepare($konek, $sql);
+        mysqli_stmt_bind_param($stmt, "s", $nis);
+        mysqli_stmt_execute($stmt);
+
+        $query = mysqli_stmt_get_result($stmt);
         $hasildata = mysqli_fetch_assoc($query);
+
+        mysqli_stmt_close($stmt);
 
         if ($hasildata) {
             // echo "Ada data <br>";
 
-            // update duditerisi
-            $sql = "SELECT * FROM datadudi WHERE kode = '$kodedudi'";
-            $query = mysqli_query($konek, $sql);
+            $sql = "SELECT * FROM datadudi WHERE kode = ?";
+            $stmt = mysqli_prepare($konek, $sql);
+
+            mysqli_stmt_bind_param($stmt, "s", $kodedudi);
+            mysqli_stmt_execute($stmt);
+
+            $query = mysqli_stmt_get_result($stmt);
             $hasildudi = mysqli_fetch_assoc($query);
+
+            mysqli_stmt_close($stmt);
+
 
             $jur_dudi_pilih = $hasildudi["jur"];
             // $status_dudi_pilih = $hasildudi["status"];
@@ -53,19 +61,10 @@ if (@$_SESSION["admin"]) {
             $kuota_L_sebelumnya = $hasildudi_sebelumnya["kuotacow"];
             $kuota_P_sebelumnya = $hasildudi_sebelumnya["kuotacew"];
 
-            // echo "Nama DU/DI: " . $nama_dudi_pilih . "<br>";
-            // echo "Kode DU/DI: " . $kode_dudi_pilih . "<br>";
-            // echo "Alamat DU/DI: " . $alamat_dudi_pilih . "<br>";
-            // echo "Pembimbing: " . $pembimbing . "<br>";
-            // echo "<br>";
-            // echo "Nama dudi sebelumnya: " . $nama_dudi_sebelumnya . "<br>";
-            // echo "Kode Dudi sebelumnya: " . $kode_dudi_sebelumnya . "<br>";
-            // echo "Gander: " . $gander . "<br>";
-
             // cek gander siswa
             $kuota_gander = "";
 
-           if (@$gander == "L") {
+            if (@$gander == "L") {
                 $kuota_gander = "kuotacow";
                 // kuota dudi sebelumnya + 1
                 $kuota_dudi_sebelumnya = $kuota_dudi_sebelumnya + 1;
@@ -92,18 +91,17 @@ if (@$_SESSION["admin"]) {
             }
 
             // cek tok
-            // echo "<br>";
-            // echo "Kuota gander siswa: " . $kuota_gander . "<br>";
-            // echo "Kuota dudi sebelumnya: " . $kuota_dudi_sebelumnya . "<br>";
-            // echo "Kuota gander sebelumnya: " . $kuota_gander_sebelumnya . "<br>";
-            // echo "Kuota: " . $kuota . "<br>";
-            // echo "Kuota L: " . $kuota_L . "<br>";
-            // echo "Kuota P: " . $kuota_P . "<br>";
-            // echo "Kuota pilih: " . $kuota_pilih . "<br>";
 
             // update duditerisi
-            $sql0 = "UPDATE duditerisi SET namadudi = '$nama_dudi_pilih', kode = '$kode_dudi_pilih', alamat = '$alamat_dudi_pilih', pembimbing = '$pembimbing', jur = '$jur_dudi_pilih' WHERE nis = '$nis'";
-            $query0 = mysqli_query($konek, $sql0);
+            $sql0 = "UPDATE duditerisi SET namadudi = ?, kode = ?, alamat = ?, pembimbing = ?, jur = ? WHERE nis = ?";
+            $stmt0 = mysqli_prepare($konek, $sql0);
+
+            // Bind parameter ke statement prepared
+            mysqli_stmt_bind_param($stmt0, "ssssss", $nama_dudi_pilih, $kode_dudi_pilih, $alamat_dudi_pilih, $pembimbing, $jur_dudi_pilih, $nis);
+
+            // Eksekusi statement prepared
+            $result0 = mysqli_stmt_execute($stmt0);
+            mysqli_stmt_close($stmt0);
 
             if ($query0) {
                 // echo "Data duditerisi berhasil diubah <br>";
@@ -133,27 +131,45 @@ if (@$_SESSION["admin"]) {
         } else {
             // cek gander siswa
             // echo "NIS : " . $nis . "<br>";
-            $sql2 = "SELECT * FROM datasiswa WHERE nis = '$nis'";
-            $query = mysqli_query($konek, $sql2);
-            $hasilsiswa = mysqli_fetch_assoc($query);
+// Pastikan parameter GET tersedia dan tidak kosong
+            $nis = isset($_GET["nis"]) ? $_GET["nis"] : null;
+            $kodedudi = isset($_GET["kodedudi"]) ? $_GET["kodedudi"] : null;
 
-            $sql = "SELECT * FROM datadudi WHERE kode = '$kodedudi'";
-            $query = mysqli_query($konek, $sql);
-            $hasildudi = mysqli_fetch_assoc($query);
+            // Ambil data dari tabel datasiswa
+            if (!empty($nis)) {
+                $sql2 = "SELECT * FROM datasiswa WHERE nis = ?";
+                $stmt2 = mysqli_prepare($konek, $sql2);
+                mysqli_stmt_bind_param($stmt2, "s", $nis);
+                mysqli_stmt_execute($stmt2);
+                $query2 = mysqli_stmt_get_result($stmt2);
+                $hasilsiswa = mysqli_fetch_assoc($query2);
+                mysqli_stmt_close($stmt2);
+            }
 
-            $jur_dudi_pilih = @$hasildudi["jur"];
-            // $status_dudi_pilih = @$hasildudi["status"];
-            $nama_dudi_pilih = @$hasildudi["namadudi"];
-            $kode_dudi_pilih = @$hasildudi["kode"];
-            $alamat_dudi_pilih = @$hasildudi["alamat"];
-            $pembimbing = @$hasildudi["pembimbing"];
-            $kuota = @$hasildudi["kuotatoal"];
-            $kuota_L = @$hasildudi["kuotacow"];
-            $kuota_P = @$hasildudi["kuotacew"];
+            // Ambil data dari tabel datadudi
+            if (!empty($kodedudi)) {
+                $sql = "SELECT * FROM datadudi WHERE kode = ?";
+                $stmt = mysqli_prepare($konek, $sql);
+                mysqli_stmt_bind_param($stmt, "s", $kodedudi);
+                mysqli_stmt_execute($stmt);
+                $query = mysqli_stmt_get_result($stmt);
+                $hasildudi = mysqli_fetch_assoc($query);
+                mysqli_stmt_close($stmt);
+            }
 
-            $namasiswa = @$hasilsiswa["nama"];
-            $kelas = @$hasilsiswa["kelas"];
-            $gander = @$hasilsiswa["gander"];
+            // Assign variabel dari hasil query
+            $jur_dudi_pilih = isset($hasildudi["jur"]) ? $hasildudi["jur"] : null;
+            $nama_dudi_pilih = isset($hasildudi["namadudi"]) ? $hasildudi["namadudi"] : null;
+            $kode_dudi_pilih = isset($hasildudi["kode"]) ? $hasildudi["kode"] : null;
+            $alamat_dudi_pilih = isset($hasildudi["alamat"]) ? $hasildudi["alamat"] : null;
+            $pembimbing = isset($hasildudi["pembimbing"]) ? $hasildudi["pembimbing"] : null;
+            $kuota = isset($hasildudi["kuotatoal"]) ? $hasildudi["kuotatoal"] : null;
+            $kuota_L = isset($hasildudi["kuotacow"]) ? $hasildudi["kuotacow"] : null;
+            $kuota_P = isset($hasildudi["kuotacew"]) ? $hasildudi["kuotacew"] : null;
+
+            $namasiswa = isset($hasilsiswa["nama"]) ? $hasilsiswa["nama"] : null;
+            $kelas = isset($hasilsiswa["kelas"]) ? $hasilsiswa["kelas"] : null;
+            $gander = isset($hasilsiswa["gander"]) ? $hasilsiswa["gander"] : null;
 
             // echo "Nama DU/DI: " . $nama_dudi_pilih . "<br>";
             // echo "Kode DU/DI: " . $kode_dudi_pilih . "<br>";
@@ -164,9 +180,16 @@ if (@$_SESSION["admin"]) {
             // echo "Kelas: " . $kelas . "<br>";
             // echo "Gander: " . $gander . "<br>";
 
-            // insert duditerisi
-            $sql = "INSERT INTO duditerisi (`namadudi`, `alamat`, `kode`, `nis`, `namasiswa`, `kelas`, `gander`, `pembimbing`, `jur`) VALUES ('$nama_dudi_pilih', '$alamat_dudi_pilih', '$kode_dudi_pilih', '$nis', '$namasiswa', '$kelas', '$gander', '$pembimbing', '$jur_dudi_pilih')";
-            $insert = mysqli_query($konek, $sql);
+            // Kueri SQL menggunakan prepared statement
+            $sql = "INSERT INTO duditerisi (`namadudi`, `alamat`, `kode`, `nis`, `namasiswa`, `kelas`, `gander`, `pembimbing`, `jur`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmt = mysqli_prepare($konek, $sql);
+
+            // Bind parameter ke statement prepared
+            mysqli_stmt_bind_param($stmt, "sssssssss", $nama_dudi_pilih, $alamat_dudi_pilih, $kode_dudi_pilih, $nis, $namasiswa, $kelas, $gander, $pembimbing, $jur_dudi_pilih);
+
+            // Eksekusi statement prepared
+            $insert = mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
 
             if ($insert) {
                 // Kurangi Kuota DU/DI terpilih -1 
@@ -195,6 +218,8 @@ if (@$_SESSION["admin"]) {
                 // echo "Gagal Tambah isian pilih DU/DI";
             }
         }
+
+        mysqli_close($konek);
     } else {
         $_SESSION["error"] = "Gagal memproses data. Refresh / ulangi lagi!" . " [0x00234]";
     }
@@ -202,10 +227,10 @@ if (@$_SESSION["admin"]) {
     header("Location: datasiswa.php");
 } else {
     $_SESSION["error"] = "Tidak ada hak akses untuk membuka halaman yang anda minta.<br>Hubungi Admin!" . " [0x00235]";
-    
+
     // header("location: ../");
-    
-        // alert 
+
+    // alert 
     echo "<script>
             alert('Tidak ada hak akses untuk membuka halaman yang anda minta. Hubungi Admin!" . " [0x00235]');
             window.location.href='../';

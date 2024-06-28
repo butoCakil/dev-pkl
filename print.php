@@ -2,11 +2,30 @@
 if (@$_GET["akses"] == "print" && @$_GET["nis"]) {
     include "koneksi.php";
 
-    $nis = @$_GET["nis"];
+    // Ambil nilai $nis dari parameter GET
+    $nis = isset($_GET['nis']) ? $_GET['nis'] : '';
 
-    $sql = "SELECT * FROM duditerisi WHERE nis = '$nis'";
-    $query = mysqli_query($konek, $sql);
-    $data = mysqli_fetch_array($query);
+    // Query SQL menggunakan prepared statement
+    $sql = "SELECT * FROM duditerisi WHERE nis = ?";
+    $stmt = mysqli_prepare($konek, $sql);
+
+    // Bind parameter ke dalam prepared statement
+    mysqli_stmt_bind_param($stmt, "s", $nis);
+
+    // Eksekusi prepared statement
+    mysqli_stmt_execute($stmt);
+
+    // Ambil hasil query
+    $result = mysqli_stmt_get_result($stmt);
+
+    // Ambil data sebagai array asosiatif
+    $data = mysqli_fetch_array($result, MYSQLI_ASSOC);
+
+    // Tutup prepared statement
+    mysqli_stmt_close($stmt);
+
+    // Tutup koneksi ke database
+    mysqli_close($konek);
 
 ?>
 

@@ -106,6 +106,8 @@ while ($hasil_pembimbing = mysqli_fetch_array($query_pembimbing)) {
     $no++;
 }
 
+mysqli_close($konek);
+
 // echo '<pre>';
 // print_r($data_pembimbing);
 // echo '</pre>';

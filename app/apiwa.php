@@ -1,19 +1,18 @@
 <?php
 // if (@$_GET['apiwa'] == "woit70953487ogy2") {
-    // $token = "@USo9EJ4cicpFQ1t9n0n";
-    // $nomor = "6288220083720";
-    // $pesan = "Ketik \"Presensi\", bukan \"Absensi\"";
+// $token = "@USo9EJ4cicpFQ1t9n0n";
+// $token = "Zo126dide#ijK#twX16P";
+// $nomor = "6288220083720";
+// $pesan = "Ketik \"Presensi\", bukan \"Absensi\"";
 //     $token = @$_GET['t'];
-    // $nomor = "62811377323";
-//     // $nomor = "6282241863393";
+// $nomor = "62811377323";
+// $nomor = "6282241863393";
 //     $nomor = @$_GET['n'];
 //     $pesan = @$_GET['p'];
 //     $nis = @$_GET['nis'];
 
-if ($token) {
-
+if (isset($token)) {
     $curl = curl_init();
-
     curl_setopt_array($curl, array(
         CURLOPT_URL => 'https://api.fonnte.com/send',
         CURLOPT_RETURNTRANSFER => true,
@@ -40,7 +39,8 @@ if ($token) {
         CURLOPT_HTTPHEADER => array(
             "Authorization: $token"
         ),
-    ));
+    )
+    );
 
     $response = curl_exec($curl);
 
@@ -59,15 +59,17 @@ if ($token) {
     $json = json_decode($response, TRUE);
     echo "json: " . $json['detail'] . "<br>";
 
-?>
+    ?>
     <script>
         // window.location.href = 'prevpresensi.php?nis=<?= $nis; ?>&akses=presensi';
     </script>
-<?php
+    <?php
 } else {
     echo "<h2>";
     echo "Akses ditolak";
     echo "<br>";
+    echo "sek sek mas, arep ngopo? XD ";
+    echo "<br>";
     echo '<a href="pkl.smknbansari.sch.id">Kembali</a>';
     echo "</h2>";
-}
+} 

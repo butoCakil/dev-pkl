@@ -59,6 +59,8 @@ if (@$_GET['token'] == '!234') {
         echo "<br>";
     }
 
+    mysqli_close($konek);
+
     // echo "<pre>";
     // print_r($data_siswa);
     // echo "</pre>";

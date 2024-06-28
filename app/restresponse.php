@@ -257,6 +257,8 @@ pkl.smknbansari.sch.id © " . date('Y');
     $i++;
 }
 
+mysqli_close($konek);
+
 // echo "<pre>";
 // print_r($datawa);
 // echo "</pre>";

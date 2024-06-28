@@ -1,21 +1,39 @@
 <?php
 if (@$_GET["aksi"] == "print2") {
-    $kodedudi = @$_GET["kode"];
+    // Ambil nilai dari parameter GET
+    $kodedudi = isset($_GET["kode"]) ? $_GET["kode"] : '';
 
+    // Masukkan file koneksi.php yang berisi koneksi ke database
     include "koneksi.php";
 
-    $nis = @$_GET["nis"];
+    // Query SQL menggunakan prepared statement
+    $sql = "SELECT * FROM duditerisi WHERE kode = ?";
+    $stmt = mysqli_prepare($konek, $sql);
 
-    $sql = "SELECT * FROM duditerisi WHERE kode = '$kodedudi'";
-    $query = mysqli_query($konek, $sql);
-    $jumlahsiswa = mysqli_num_rows($query);
-    $data = mysqli_fetch_array($query);
+    // Bind parameter ke dalam prepared statement
+    mysqli_stmt_bind_param($stmt, "s", $kodedudi);
 
-    $namadudi = @$data["namadudi"];
-    $alamat_dudi = @$data["alamat"];
+    // Eksekusi prepared statement
+    mysqli_stmt_execute($stmt);
 
-    // hitung jumlah data
+    // Ambil hasil query
+    $result = mysqli_stmt_get_result($stmt);
 
+    // Hitung jumlah baris yang ditemukan
+    $jumlahsiswa = mysqli_num_rows($result);
+
+    // Ambil data sebagai array asosiatif
+    $data = mysqli_fetch_array($result, MYSQLI_ASSOC);
+
+    // Ambil nilai-nilai yang diperlukan
+    $namadudi = isset($data["namadudi"]) ? $data["namadudi"] : '';
+    $alamat_dudi = isset($data["alamat"]) ? $data["alamat"] : '';
+
+    // Tutup prepared statement
+    mysqli_stmt_close($stmt);
+
+    // Tutup koneksi ke database
+    mysqli_close($konek);
 ?>
 
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">

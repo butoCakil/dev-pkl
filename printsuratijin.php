@@ -26,26 +26,30 @@ if (@$_GET["aksi"] == "print3") {
     // tanggal dengan bulan indonesia
     $tanggal_indo = date("d ") . bulanindo(date("m")) . date(" Y");
 
-    $kodedudi = @$_GET["kode"];
-
+    // Ambil nilai dari parameter GET
+    $kodedudi = isset($_GET["kode"]) ? $_GET["kode"] : '';
+    $nis = isset($_GET["nis"]) ? $_GET["nis"] : '';
     include "koneksi.php";
-
-    $nis = @$_GET["nis"];
-
-    $sql = "SELECT * FROM duditerisi WHERE kode = '$kodedudi'";
-    $query = mysqli_query($konek, $sql);
-    $jumlahsiswa = mysqli_num_rows($query);
-    $data = mysqli_fetch_array($query);
     
-    $sql2 = "SELECT * FROM datadudi WHERE kode = '$kodedudi'";
-    $query2 = mysqli_query($konek, $sql2);
-    $data2 = mysqli_fetch_array($query2);
+    $sql = "SELECT * FROM duditerisi WHERE kode = ?";
+    $stmt = mysqli_prepare($konek, $sql);
+    mysqli_stmt_bind_param($stmt, "s", $kodedudi);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $data = mysqli_fetch_array($result, MYSQLI_ASSOC);
+    mysqli_stmt_close($stmt);
 
-    $namadudi = @$data["namadudi"];
-    $alamat_dudi = @$data["alamat"];
-    $kota = @$data2["kota"];
-
-    // hitung jumlah data
+    $sql2 = "SELECT * FROM datadudi WHERE kode = ?";
+    $stmt2 = mysqli_prepare($konek, $sql2);
+    mysqli_stmt_bind_param($stmt2, "s", $kodedudi);
+    mysqli_stmt_execute($stmt2);
+    $result2 = mysqli_stmt_get_result($stmt2);
+    $data2 = mysqli_fetch_array($result2, MYSQLI_ASSOC);
+    $namadudi = isset($data["namadudi"]) ? $data["namadudi"] : '';
+    $alamat_dudi = isset($data["alamat"]) ? $data["alamat"] : '';
+    $kota = isset($data2["kota"]) ? $data2["kota"] : '';
+    mysqli_stmt_close($stmt2);
+    mysqli_close($konek);
 
 ?>
 

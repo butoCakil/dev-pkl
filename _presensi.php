@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 date_default_timezone_set('Asia/Jakarta');
 $tanggal = date('Y-m-d');
 $jam = date('H.i.s');
@@ -51,9 +53,10 @@ $pesan_er = "<h6>Gagal Mengunggah...</h6><br>
         $folder = "/img/presensi/";
 
         if (@$_FILES['file_photos']['name']) {
+            include "koneksi.php";
 
             // echo "masuk ke file_photos <br>";
-
+    
             $file = @$_FILES['file_photos']['name'];
             $file_loc = @$_FILES['file_photos']['tmp_name'];
             $file_size = @$_FILES['file_photos']['size'];
@@ -64,58 +67,78 @@ $pesan_er = "<h6>Gagal Mengunggah...</h6><br>
             $file_count = count($file);
 
             // pengulangan sejumlah jumlah file
+            // Loop untuk setiap file yang diupload
             for ($i = 0; $i < $file_count; $i++) {
                 $new_size = $file_size[$i] / 1024;
                 $new_file_name = strtolower($file[$i]);
-                $new_file_name = $nis . '_' . $kode . '_' . $tanggal . "_" . $jam . "_" . $i . "_" .  $new_file_name;
+                $new_file_name = $nis . '_' . $kode . '_' . $tanggal . "_" . $jam . "_" . $i . "_" . $new_file_name;
                 $final_file = str_replace(' ', '_', $new_file_name);
                 $folder = "img/presensi/" . $final_file;
                 $file_loc = @$_FILES['file_photos']['tmp_name'][$i];
                 $file_type = @$_FILES['file_photos']['type'][$i];
 
-                $compressedImage = compressImage($file_loc, $folder, 20); //compress image
+                $compressedImage = compressImage($file_loc, $folder, 20); // compress image
+    
+                // Tentukan statement SQL menggunakan prepared statement
+                $sql = "INSERT INTO presensi (nis, kode, file, type, size, ket, jurnal) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-                // if ($compressedImage) {
+                // Persiapkan statement
+                $stmt = mysqli_prepare($konek, $sql);
+
+                // Bind parameter ke statement
+                mysqli_stmt_bind_param(
+                    $stmt,
+                    "sssssss",
+                    $nis,
+                    $kode,
+                    $final_file,
+                    $file_type,
+                    $new_size,
+                    $keterangan,
+                    $catatan
+                );
+
+                // Eksekusi statement
+                $upload_success = false;
                 if (move_uploaded_file(($compressedImage ? $compressedImage : $file_loc), $folder)) {
-
-                    include "koneksi.php";
-
-                    $sql = "INSERT INTO presensi (nis, kode, file, type, size, ket, jurnal) VALUES ('$nis', '$kode', '$final_file', '$file_type', '$new_size', '$keterangan', '$catatan')";
-                    $hasil = mysqli_query($konek, $sql);
-
-                    if ($hasil) {
-                        echo "$pesan_ok";
-                    } else {
-                        echo "$pesan_er<br><br>" . mysqli_error($konek) . "<br>";
+                    if (mysqli_stmt_execute($stmt)) {
+                        $upload_success = true;
                     }
-    ?>
-                    <script>
-                        // alert('Berhasil Upload');
-                        window.location.href = 'prevpresensi.php?nis=<?= $nis; ?>&akses=presensi';
-                    </script>
-                <?php
-                    // include "app/apiwa.php";
+                }
+
+                if ($upload_success) {
+                    echo "$pesan_ok";
                 } else {
-                    echo "$pesan_er <br>" . $file_error . "<br>";
-                ?>
+                    echo "$pesan_er<br><br>" . mysqli_error($konek) . "<br>";
+                    ?>
                     <script>
-                        alert('error - Gagal Upload!<br>'.mysqli_error($konek));
+                        // alert('Gagal Upload');
                         window.location.href = 'presensi.php?nis=<?= $nis; ?>&akses=presensi';
                     </script>
-                <?php
+                    <?php
                 }
+
+                // Tutup statement
+                mysqli_stmt_close($stmt);
             }
+
+            mysqli_close($konek);
         } else {
 
             // echo "masuk ke _photos <br>";
-            
+    
             // cek hari ini sudah absen belom
             include "koneksi.php";
 
-            $sql = "SELECT * FROM presensi WHERE nis = '$nis' AND timestamp LIKE '%$tanggal%'";
-            $result = mysqli_query($konek, $sql);
-            $hasil_sudah_absen = mysqli_num_rows($result);
-            
+            // Cek apakah sudah ada absensi untuk NIS tertentu pada tanggal tertentu
+            $sql_check_absensi = "SELECT * FROM presensi WHERE nis = ? AND timestamp LIKE ?";
+            $stmt_check_absensi = mysqli_prepare($konek, $sql_check_absensi);
+            $tanggal_bind = "%$tanggal%";
+            mysqli_stmt_bind_param($stmt_check_absensi, "ss", $nis, $tanggal_bind);
+            mysqli_stmt_execute($stmt_check_absensi);
+            $result_check_absensi = mysqli_stmt_get_result($stmt_check_absensi);
+            $hasil_sudah_absen = mysqli_num_rows($result_check_absensi);
+
             if ($keterangan || $hasil_sudah_absen > 0) {
                 $file = @$_FILES['_photos']['name'];
                 $file_loc = @$_FILES['_photos']['tmp_name'];
@@ -125,42 +148,64 @@ $pesan_er = "<h6>Gagal Mengunggah...</h6><br>
 
                 $new_size = $file_size / 1024;
                 $new_file_name = strtolower($file);
-                $new_file_name = $nis . '_' . $kode . '_' . $tanggal . "_" . $jam . "_" .  $new_file_name;
+                $new_file_name = $nis . '_' . $kode . '_' . $tanggal . "_" . $jam . "_" . $new_file_name;
                 $final_file = str_replace(' ', '_', $new_file_name);
 
                 $folder = "img/presensi/" . $final_file;
 
                 $allowTypes = array('jpg', 'png', 'jpeg'); //allow only these types of files
-
+    
                 $fileType = pathinfo($folder, PATHINFO_EXTENSION); // get file extension
-
+    
                 $compressedImage = compressImage($file_loc, $folder, 10); //compress image
-
+    
                 if ($compressedImage) {
 
-                    $sql = "INSERT INTO presensi (nis, kode, file, type, size, ket, jurnal) VALUES ('$nis', '$kode', '$final_file', '$file_type', '$new_size', '$keterangan', '$catatan')";
-                    $hasil = mysqli_query($konek, $sql);
+                    $sql_insert_presensi = "INSERT INTO presensi (nis, kode, file, type, size, ket, jurnal) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    $stmt_insert_presensi = mysqli_prepare($konek, $sql_insert_presensi);
+                    mysqli_stmt_bind_param(
+                        $stmt_insert_presensi,
+                        "ssssdss",
+                        $nis,
+                        $kode,
+                        $final_file,
+                        $file_type,
+                        $new_size,
+                        $keterangan,
+                        $catatan
+                    );
 
-                    if ($hasil) {
+                    // Eksekusi statement
+                    if (mysqli_stmt_execute($stmt_insert_presensi)) {
                         echo "$pesan_ok";
+                        ?>
+                        <script>
+                            // alert('Berhasil Upload');
+                            window.location.href = 'prevpresensi.php?nis=<?= $nis; ?>&akses=presensi';
+                        </script>
+                        <?php
                     } else {
                         echo "$pesan_er<br>" . mysqli_error($konek) . "<br>";
+                        ?>
+                        <script>
+                            alert('error - Gagal Upload!<br><?= mysqli_error($konek); ?>');
+                            window.location.href = 'presensi.php?nis=<?= $nis; ?>&akses=presensi';
+                        </script>
+                        <?php
                     }
-                ?>
-                    <script>
-                        // alert('Berhasil Upload');
-                        window.location.href = 'prevpresensi.php?nis=<?= $nis; ?>&akses=presensi';
-                    </script>
-                <?php
+
+                    // Tutup statement insert
+                    mysqli_stmt_close($stmt_insert_presensi);
+
                     // include "app/apiwa.php";
                 } else {
                     echo "$pesan_er<br>" . $file_error . "<br>";
-                ?>
+                    ?>
                     <script>
                         alert('error - Gagal Upload!<br>'.mysqli_error($konek));
                         window.location.href = 'presensi.php?nis=<?= $nis; ?>&akses=presensi';
                     </script>
-                <?php
+                    <?php
                 }
             } else {
                 echo "$pesan_er";
@@ -169,9 +214,15 @@ $pesan_er = "<h6>Gagal Mengunggah...</h6><br>
                     alert('error - Gagal Upload!\nTidak ada Keterangan Absen (Masuk, Ijin, Sakit , Libur)\nTolong Ulangi lagi ya...');
                     window.location.href = 'presensi.php?nis=<?= $nis; ?>&akses=presensi';
                 </script>
-    <?php
+                <?php
             }
+
+            // Tutup koneksi database
+            mysqli_close($konek);
         }
+    } else {
+        echo '<script>window.history.back();</script>';
+        echo '<script>alert("Tidak ada Foto!")</script>';
     }
 
     echo "</div>";

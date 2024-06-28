@@ -1,10 +1,6 @@
 <?php
 session_start();
 
-// echo '<pre>';
-// print_r(@$_POST);
-// echo '</pre>';
-
 $title = "Admin Prakerin";
 $admin = true;
 
@@ -15,11 +11,20 @@ if (@$_SESSION['admin'] == "admin") {
     include "../koneksi.php";
 
     // hapus pembimbing
-    if (@$_POST['hapuspembimbing'] == "hapus") {
-        $id = @$_POST['id'];
-        $namapembimbing = @$_POST['namapembimbing'];
+    if (isset($_POST['hapuspembimbing']) && $_POST['hapuspembimbing'] == "hapus") {
+        // Ambil nilai dari form
+        $id = isset($_POST['id']) ? $_POST['id'] : '';
+        $namapembimbing = isset($_POST['namapembimbing']) ? $_POST['namapembimbing'] : '';
 
-        $delete = mysqli_query($konek, "DELETE FROM `datapembimbing` WHERE id = '$id'");
+        // Query SQL menggunakan prepared statement untuk menghapus data pembimbing
+        $sql = "DELETE FROM `datapembimbing` WHERE id = ?";
+        $stmt = mysqli_prepare($konek, $sql);
+
+        // Bind parameter ke dalam prepared statement
+        mysqli_stmt_bind_param($stmt, "i", $id);
+
+        // Eksekusi prepared statement
+        $delete = mysqli_stmt_execute($stmt);
 
         if ($delete) {
             $pesan = "Nama Pembimbing: " . $namapembimbing . ", Berhasil dihapus!";
@@ -28,20 +33,32 @@ if (@$_SESSION['admin'] == "admin") {
             $pesan_error = "Gagal menghapus Pembimbing: " . $namapembimbing . "<br>" . mysqli_error($konek);
             $_SESSION['pesan_error'] = $pesan_error;
         }
-?>
+
+        // Tutup prepared statement
+        mysqli_stmt_close($stmt);
+        ?>
         <script>
             window.location.href = "pembimbing.php";
         </script>
-    <?php
+        <?php
     }
 
     // TAMBAH PEMBIMBING
-    if (@$_POST['pembimbing'] == "tambah") {
-        $namapembimbing = @$_POST['namapembimbing'];
-        $jurusanbimbingan = @$_POST['jurusanbimbingan'];
-        $nomortelepon = @$_POST['nomortelepon'];
+    if (isset($_POST['pembimbing']) && $_POST['pembimbing'] == "tambah") {
+        // Ambil nilai dari form
+        $namapembimbing = isset($_POST['namapembimbing']) ? $_POST['namapembimbing'] : '';
+        $jurusanbimbingan = isset($_POST['jurusanbimbingan']) ? $_POST['jurusanbimbingan'] : '';
+        $nomortelepon = isset($_POST['nomortelepon']) ? $_POST['nomortelepon'] : '';
 
-        $insert_pembimbing = mysqli_query($konek, "INSERT INTO `datapembimbing`(`nama`, `cp`, `jur`) VALUES ('$namapembimbing','$nomortelepon','$jurusanbimbingan')");
+        // Query SQL menggunakan prepared statement untuk menambahkan data pembimbing
+        $sql = "INSERT INTO `datapembimbing`(`nama`, `cp`, `jur`) VALUES (?, ?, ?)";
+        $stmt = mysqli_prepare($konek, $sql);
+
+        // Bind parameter ke dalam prepared statement
+        mysqli_stmt_bind_param($stmt, "sss", $namapembimbing, $nomortelepon, $jurusanbimbingan);
+
+        // Eksekusi prepared statement
+        $insert_pembimbing = mysqli_stmt_execute($stmt);
 
         if ($insert_pembimbing) {
             $pesan = "Nama Pembimbing: " . $namapembimbing . ", Berhasil ditambahkan";
@@ -50,11 +67,14 @@ if (@$_SESSION['admin'] == "admin") {
             $pesan_error = "Gagal Tambahkan Pembimbing: " . $namapembimbing . "<br>" . mysqli_error($konek);
             $_SESSION['pesan_error'] = $pesan_error;
         }
-    ?>
+
+        // Tutup prepared statement
+        mysqli_stmt_close($stmt);
+        ?>
         <script>
             window.location.href = "pembimbing.php";
         </script>
-    <?php
+        <?php
     } elseif (@$_POST['pembimbing'] == "ubah") {
         $namalama = @$_POST['namalama'];
         $nomorlama = @$_POST['nomorlama'];
@@ -86,26 +106,45 @@ if (@$_SESSION['admin'] == "admin") {
 
         $update_pembimbing = mysqli_query($konek, "UPDATE `datapembimbing` SET `nama`='$namapembimbing',`cp`='$nomortelepon',`jur`='$jurusanbimbingan' WHERE id = '$id'");
 
-        if ($update_pembimbing) {
-            $success++;
-        } else {
-            $success--;
+        $sql = "UPDATE `datapembimbing` SET `nama`=?, `cp`=?, `jur`=? WHERE id = ?";
+        // Siapkan statement prepared
+        if ($stmt = mysqli_prepare($konek, $sql)) {
+            mysqli_stmt_bind_param($stmt, "sssi", $namapembimbing, $nomortelepon, $jurusanbimbingan, $id);
+
+            if (mysqli_stmt_execute($stmt)) {
+                $success++;
+            } else {
+                $success--;
+            }
+
+            mysqli_stmt_close($stmt);
         }
 
-        $update_pembimbing_duditerisi = mysqli_query($konek, "UPDATE `duditerisi` SET `pembimbing`='$namapembimbing', `jur`='$jurusanbimbingan' WHERE pembimbing = '$namalama'");
+        $sql = "UPDATE `duditerisi` SET `pembimbing`=?, `jur`=? WHERE pembimbing=?";
+        if ($stmt = mysqli_prepare($konek, $sql)) {
+            mysqli_stmt_bind_param($stmt, "sss", $namapembimbing, $jurusanbimbingan, $namalama);
 
-        if ($update_pembimbing_duditerisi) {
-            $success++;
-        } else {
-            $success--;
+            if (mysqli_stmt_execute($stmt)) {
+                $success++;
+            } else {
+                $success--;
+            }
+
+            mysqli_stmt_close($stmt);
         }
 
-        $update_pembimbing_datadudi = mysqli_query($konek, "UPDATE `datadudi` SET `pembimbing`='$namapembimbing', `nowa`='$nomortelepon', `jur`='$jurusanbimbingan' WHERE pembimbing = '$namalama'");
+        $sql = "UPDATE `datadudi` SET `pembimbing`=?, `nowa`=?, `jur`=? WHERE pembimbing=?";
 
-        if ($update_pembimbing_datadudi) {
-            $success++;
-        } else {
-            $success--;
+        if ($stmt = mysqli_prepare($konek, $sql)) {
+            mysqli_stmt_bind_param($stmt, "ssss", $namapembimbing, $nomortelepon, $jurusanbimbingan, $namalama);
+
+            if (mysqli_stmt_execute($stmt)) {
+                $success++;
+            } else {
+                $success--;
+            }
+
+            mysqli_stmt_close($stmt);
         }
 
         if ($success == 3) {
@@ -115,11 +154,11 @@ if (@$_SESSION['admin'] == "admin") {
             $pesan_error = "Gagal mengubah data Pembimbing: " . $namapembimbing . " (" . $success . "/3)" . "<br>" . mysqli_error($konek);
             $_SESSION['pesan_error'] = $pesan_error;
         }
-    ?>
+        ?>
         <script>
             window.location.href = "pembimbing.php";
         </script>
-    <?php
+        <?php
     }
 
     if (@$_GET['akses'] == 'tambah') {
@@ -128,10 +167,20 @@ if (@$_SESSION['admin'] == "admin") {
         // print_r($_GET);
         // echo '</pre>';
 
-        $id = @$_GET['i'];
         // $namalama = @$_GET['na'];
-        $query = mysqli_query($konek, "SELECT * FROM datapembimbing WHERE id = '$id'");
-        $data = mysqli_fetch_array($query);
+        $id = isset($_GET['i']) ? $_GET['i'] : null;
+
+        if (!is_null($id)) {
+            $query = mysqli_prepare($konek, "SELECT * FROM datapembimbing WHERE id = ?");
+            mysqli_stmt_bind_param($query, "i", $id);
+
+            mysqli_stmt_execute($query);
+            $result = mysqli_stmt_get_result($query);
+            $data = mysqli_fetch_assoc($result);
+            mysqli_stmt_close($query);
+        } else {
+            $data = null;
+        }
 
         $namapembimbing = @$data['nama'];
         $jurusanbimbingan = @$data['jur'];
@@ -167,16 +216,19 @@ if (@$_SESSION['admin'] == "admin") {
         <form id="form_tambahdudi" class="mx-5" method="post">
             <div class="mb-3 form-group">
                 <label for="namapembimbing" class="form-label">Nama Pembimbing</label>
-                <input type="text" class="form-control" id="namapembimbing" name="namapembimbing" placeholder="Nama Lengkap + Gelar" value="<?= @$namapembimbing; ?>">
+                <input type="text" class="form-control" id="namapembimbing" name="namapembimbing"
+                    placeholder="Nama Lengkap + Gelar" value="<?= @$namapembimbing; ?>">
             </div>
             <div class="mb-3 form-group">
                 <label for="jurusanbimbingan" class="form-label">Jurusan</label>
-                <input type="text" class="form-control" id="jurusanbimbingan" name="jurusanbimbingan" placeholder="contoh: Teknik Elektronika, ditulis TE" value="<?= @$jurusanbimbingan; ?>">
+                <input type="text" class="form-control" id="jurusanbimbingan" name="jurusanbimbingan"
+                    placeholder="contoh: Teknik Elektronika, ditulis TE" value="<?= @$jurusanbimbingan; ?>">
             </div>
 
             <div class="mb-3 form-group">
                 <label for="nomortelepon" class="form-label">Nomor Telepon (WA)</label>
-                <input type="number" class="form-control" id="nomortelepon" name="nomortelepon" placeholder="contoh: 6285xxxxxxxx" value="<?= @$nomortelepon; ?>">
+                <input type="number" class="form-control" id="nomortelepon" name="nomortelepon"
+                    placeholder="contoh: 6285xxxxxxxx" value="<?= @$nomortelepon; ?>">
             </div>
 
             <?php if (@$_GET['akses'] == 'ubah') { ?>
@@ -186,13 +238,18 @@ if (@$_SESSION['admin'] == "admin") {
                 <input type="hidden" name="jurlama" value="<?= $jurusanbimbingan; ?>">
             <?php } ?>
 
-            <button type="submit" name="pembimbing" value="<?= @$_GET['akses']; ?>" class="btn btn-sm border-0 btn-primary"><?= ucfirst(@$_GET['akses']); ?></button>
+            <button type="submit" name="pembimbing" value="<?= @$_GET['akses']; ?>"
+                class="btn btn-sm border-0 btn-primary"><?= ucfirst(@$_GET['akses']); ?></button>
         </form>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
+        crossorigin="anonymous"></script>
 
-<?php } else { 
+    <?php
+    mysqli_close($konek);
+} else {
     echo "<script>
             alert('Anda tidak memiliki akses ke halaman ini!');
             window.location.href='../admin';

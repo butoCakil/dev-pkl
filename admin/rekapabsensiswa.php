@@ -83,43 +83,74 @@ include "../views/header.php";
 include "../views/navbar.php";
 
 if (@$_SESSION["admin"]) {
-
-    include "../koneksi.php";
-
     $pembimbing_pilih = @$_GET['p'];
     $dudi_pilih = @$_GET['d'];
 
-    $sql_cek_pembimbing = mysqli_query($konek, "SELECT * FROM datapembimbing WHERE id = '$pembimbing_pilih'");
-    $hasil_cek_pembimbing = mysqli_fetch_array($sql_cek_pembimbing);
+    include "../koneksi.php";
+
+    // Prepared statement untuk mencari nama pembimbing berdasarkan id
+    $sql_cek_pembimbing = "SELECT * FROM datapembimbing WHERE id = ?";
+    $stmt_pembimbing = mysqli_prepare($konek, $sql_cek_pembimbing);
+    mysqli_stmt_bind_param($stmt_pembimbing, "s", $pembimbing_pilih);
+    mysqli_stmt_execute($stmt_pembimbing);
+    $result_cek_pembimbing = mysqli_stmt_get_result($stmt_pembimbing);
+    $hasil_cek_pembimbing = mysqli_fetch_array($result_cek_pembimbing);
 
     $hasil_nama_pembimbing = @$hasil_cek_pembimbing['nama'];
 
+    // Menutup statement setelah penggunaan
+    mysqli_stmt_close($stmt_pembimbing);
+
+    $data_siswa = array();
+    $sql_statement = "SELECT * FROM duditerisi";
+
     if ($hasil_nama_pembimbing) {
-        $sortir_query = " WHERE pembimbing = '$hasil_nama_pembimbing'";
+        $sql_statement .= " WHERE pembimbing = ?";
+        $stmt = mysqli_prepare($konek, $sql_statement);
+        mysqli_stmt_bind_param($stmt, "s", $hasil_nama_pembimbing);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        while ($hasil_para_siswa = mysqli_fetch_array($result)) {
+            $data_siswa[] = $hasil_para_siswa;
+        }
         $sub_title = "Pembimbing: " . $hasil_nama_pembimbing;
     } elseif ($dudi_pilih) {
-        $sortir_query = " WHERE kode = '$dudi_pilih'";
+        $sql_statement .= " WHERE kode = ?";
+        $stmt = mysqli_prepare($konek, $sql_statement);
+        mysqli_stmt_bind_param($stmt, "s", $dudi_pilih);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        while ($hasil_para_siswa = mysqli_fetch_array($result)) {
+            $data_siswa[] = $hasil_para_siswa;
+        }
         $sub_title = "DUDI: " . $dudi_pilih;
     } else {
-        if (@$_GET['jur']) {
-            $sortir_query = " WHERE jur = '" . $_GET['jur'] . "'";
-            $sub_title = "Jurusan: " . $_GET['jur'];
+        if ($jurusan) {
+            $sql_statement .= " WHERE jur = ?";
+            $stmt = mysqli_prepare($konek, $sql_statement);
+            mysqli_stmt_bind_param($stmt, "s", $jurusan);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            while ($hasil_para_siswa = mysqli_fetch_array($result)) {
+                $data_siswa[] = $hasil_para_siswa;
+            }
+            $sub_title = "Jurusan: " . $jurusan;
         } else {
-            $sortir_query = '';
+            $stmt = mysqli_prepare($konek, $sql_statement);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            while ($hasil_para_siswa = mysqli_fetch_array($result)) {
+                $data_siswa[] = $hasil_para_siswa;
+            }
             $sub_title = '';
         }
     }
 
-    $sql_para_siswa = mysqli_query($konek, "SELECT * FROM duditerisi" . $sortir_query);
-
-    $data_siswa = array();
-    while ($hasil_para_siswa = mysqli_fetch_array($sql_para_siswa)) {
-        $data_siswa[] = $hasil_para_siswa;
-    }
+    mysqli_stmt_close($stmt);
 
     $result_pembimbing = mysqli_query($konek, "SELECT * FROM datapembimbing");
     $result_dudi = mysqli_query($konek, "SELECT * FROM datadudi");
-?>
+    ?>
 
     <style>
         h4 {
@@ -177,7 +208,11 @@ if (@$_SESSION["admin"]) {
             <li>Pilih tanggal untuk melihat data pada tanggal tersebut</li>
             <li>Klik Nama Siswa untuk melihat detail / Catatan / Foto Presensi.</li>
             <li>Tampil Jurnal/Tampil Presensi, mengubah tampilan tabel. Tampil Jurnal menampilkan Foto dan jurnal</li>
-            <li>Keterangan: <span class='badge text-bg-success'><i class='fas fa-check'></i></span> = Masuk, <span class='badge text-bg-primary'>✉️</span> = Ijin, <span class='badge text-bg-warning'>🤒</span> = Sakit, <span class='badge text-bg-dark'>☕️</span> = Libur, <span class='badge text-bg-danger'><i class='fas fa-times'></i></span> = Tidak Presensi</li>
+            <li>Keterangan: <span class='badge text-bg-success'><i class='fas fa-check'></i></span> = Masuk, <span
+                    class='badge text-bg-primary'>✉️</span> = Ijin, <span class='badge text-bg-warning'>🤒</span> = Sakit,
+                <span class='badge text-bg-dark'>☕️</span> = Libur, <span class='badge text-bg-danger'><i
+                        class='fas fa-times'></i></span> = Tidak Presensi
+            </li>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         <div class="d-flex flex-wrap">
@@ -188,7 +223,8 @@ if (@$_SESSION["admin"]) {
             </div>
 
             <div class="dropdown m-2">
-                <a class="btn btn-warning btn-sm border-0 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <a class="btn btn-warning btn-sm border-0 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
                     Jurusan
                 </a><br>
                 <!--<label for="">Pilih DUDI</label>-->
@@ -201,7 +237,8 @@ if (@$_SESSION["admin"]) {
             </div>
 
             <div class="dropdown m-2">
-                <a class="btn btn-success btn-sm border-0 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <a class="btn btn-success btn-sm border-0 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
                     Pembimbing
                 </a><br>
                 <!--<label for="">Pilih Pembimbing</label>-->
@@ -216,7 +253,8 @@ if (@$_SESSION["admin"]) {
             </div>
 
             <div class="dropdown m-2">
-                <a class="btn btn-primary btn-sm border-0 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <a class="btn btn-primary btn-sm border-0 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
                     Dudi
                 </a><br>
                 <!--<label for="">Pilih DUDI</label>-->
@@ -231,7 +269,9 @@ if (@$_SESSION["admin"]) {
             </div>
 
             <div class="m-2">
-                <input class="form-control form-control-sm" type="date" name="tanggal_pilih" value="<?php echo $tanggal_pilih; ?>" onchange="pilih_tanggal(this.value, ' <?= $pembimbing_pilih; ?>', '<?= $dudi_pilih; ?>', '<?= $tampil; ?>', '<?= $jurusan; ?>');">
+                <input class="form-control form-control-sm" type="date" name="tanggal_pilih"
+                    value="<?php echo $tanggal_pilih; ?>"
+                    onchange="pilih_tanggal(this.value, ' <?= $pembimbing_pilih; ?>', '<?= $dudi_pilih; ?>', '<?= $tampil; ?>', '<?= $jurusan; ?>');">
                 <label class="mx-2">Pilih Tanggal</label>
             </div>
 
@@ -264,7 +304,7 @@ if (@$_SESSION["admin"]) {
         <?php if (@$_SESSION["error"]) {
             $pesan = $_SESSION["error"];
             unset($_SESSION["error"]);
-        ?>
+            ?>
             <div class="alert alert-danger text-center" role="alert">
                 <?= $pesan; ?>
                 <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -274,7 +314,7 @@ if (@$_SESSION["admin"]) {
         <?php if (@$_SESSION["ok"]) {
             $pesan = $_SESSION["ok"];
             unset($_SESSION["ok"]);
-        ?>
+            ?>
             <div class="alert alert-success text-center" role="alert">
                 <?= $pesan; ?>
                 <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -291,14 +331,18 @@ if (@$_SESSION["admin"]) {
                     $disabled_tombol_selanjutnya = "";
                 }
                 ?>
-                <button class="btn btn-light btn-sm border-0" onclick="tgl_s('<?= $tanggal_kurang_1; ?>', '<?= $pembimbing_pilih; ?>', '<?= $dudi_pilih; ?>', '<?= $tampil; ?>', '<?= $jurusan; ?>');">
+                <button class="btn btn-light btn-sm border-0"
+                    onclick="tgl_s('<?= $tanggal_kurang_1; ?>', '<?= $pembimbing_pilih; ?>', '<?= $dudi_pilih; ?>', '<?= $tampil; ?>', '<?= $jurusan; ?>');">
                     << Sebelumnya </button>
-                        <button class="btn btn-light btn-sm border-0" onclick="tgl_s('<?= $tanggal_tambah_1; ?>', '<?= $pembimbing_pilih; ?>', '<?= $dudi_pilih; ?>', '<?= $tampil; ?>', '<?= $jurusan; ?>');" <?= $disabled_tombol_selanjutnya; ?> id="">
+                        <button class="btn btn-light btn-sm border-0"
+                            onclick="tgl_s('<?= $tanggal_tambah_1; ?>', '<?= $pembimbing_pilih; ?>', '<?= $dudi_pilih; ?>', '<?= $tampil; ?>', '<?= $jurusan; ?>');"
+                            <?= $disabled_tombol_selanjutnya; ?> id="">
                             Selanjutnya >>
                         </button>
             </div>
             <h4>Data Presensi Siswa di DUDIKA</h4>
-            <h4><i><?= $hari_indonesia . ', ' . date('d', strtotime($tanggal_pilih)) . ' ' . $bulan_indonesia . ' ' . date('Y', strtotime($tanggal_pilih)); ?></i></h4>
+            <h4><i><?= $hari_indonesia . ', ' . date('d', strtotime($tanggal_pilih)) . ' ' . $bulan_indonesia . ' ' . date('Y', strtotime($tanggal_pilih)); ?></i>
+            </h4>
             <h4 class="badge bg-danger text-center d-block mx-auto"><?= $_GET ? $sub_title : "Semua Jurusan"; ?></h4>
         </div>
         <div class="table-responsive">
@@ -312,8 +356,8 @@ if (@$_SESSION["admin"]) {
                         <th>DUDIKA</th>
                         <th>Qty</th>
                         <?php
-                        if (@$_GET['tampil'] == 'jurnal') {
-                        ?>
+                        if (@$tampil == 'jurnal') {
+                            ?>
                             <th>Junal Harian</th>
                             <?php
                         } else {
@@ -325,13 +369,13 @@ if (@$_SESSION["admin"]) {
                             for ($s = 0; $s < 8; $s++) {
                                 $hari_sekarang = date('d', strtotime($tgl_sekarang));
                                 $bulan_sekarang = date('m', strtotime($tgl_sekarang));
-                                $hari_col = date('l', strtotime($thn_pilih . "-" . $bulan_sekarang . "-" . sprintf("%02d", $hari_sekarang))); 
-                            ?>
-                                <th class = "text-center" style = "font-size: 12px;">
+                                $hari_col = date('l', strtotime($thn_pilih . "-" . $bulan_sekarang . "-" . sprintf("%02d", $hari_sekarang)));
+                                ?>
+                                <th class="text-center" style="font-size: 12px;">
                                     <?= $hari_indonesia_array[$hari_col] . ", "; ?>
                                     <?= date('d/m', strtotime($tgl_sekarang)); ?>
                                 </th>
-                        <?php
+                                <?php
                                 $_tgl_kemarin = date('Y-m-d', strtotime('+1 day', strtotime($tgl_sekarang)));
                                 $tgl_kemarin[] = $_tgl_kemarin;
                                 $tgl_sekarang = $_tgl_kemarin;
@@ -350,7 +394,7 @@ if (@$_SESSION["admin"]) {
                         $kelas = $dts['kelas'];
                         $namadudi = $dts['namadudi'];
                         $pembimbing = $dts['pembimbing'];
-                    ?>
+                        ?>
                         <tr>
                             <!--<td><?= $no++; ?></td>-->
                             <td><?= $nis; ?><br><span class="badge badge-sm bg-dark"><?= $kelas; ?></span></td>
@@ -359,38 +403,54 @@ if (@$_SESSION["admin"]) {
                                     <?= $namasiswa; ?><br><span class="badge badge-sm bg-info"><?= $gander; ?></span>
                                 </a>
                             </td>
-                            
+
                             <td>
                                 <?php
-                                $_q = mysqli_query($konek, "SELECT nohp FROM datasiswa WHERE nis = '$nis'");
+                                $query = "SELECT nohp FROM datasiswa WHERE nis = ?";
+                                $stmt = mysqli_prepare($konek, $query);
+                                mysqli_stmt_bind_param($stmt, "s", $nis);
+                                mysqli_stmt_execute($stmt);
+                                $result = mysqli_stmt_get_result($stmt);
 
-                                if (mysqli_num_rows($_q) > 0) {
-                                    $dddtnowa = mysqli_fetch_array($_q);
+                                if (mysqli_num_rows($result) > 0) {
+                                    $row = mysqli_fetch_array($result);
 
-                                    if ($dddtnowa["nohp"]) {
-                                        $link_wa = "https://api.whatsapp.com/send?phone=" . @$dddtnowa["nohp"];
+                                    if ($row["nohp"]) {
+                                        $link_wa = "https://api.whatsapp.com/send?phone=" . $row["nohp"];
+                                        ?>
+                                        <br><a href="<?= htmlspecialchars($link_wa); ?>" class="btn btn-sm btn-success border-0"><i
+                                                class="fab fa-whatsapp"
+                                                style="--fa-beat-scale: 1.5; --fa-animation-duration: 1s;"></i></a>
+                                        <?php
+                                    }
+                                }
+
+                                mysqli_stmt_close($stmt);
                                 ?>
-                                        <br><a href="<?= $link_wa; ?>" class="btn btn-sm btn-success border-0"><i class="fa-brands fa-whatsapp" style="--fa-beat-scale: 1.5; --fa-animation-duration: 1s;"></i></a>
-                                <?php }
-                                } ?>
                             </td>
-                            
+
                             <td><?= $namadudi; ?><br><span class="badge badge-sm bg-success"><?= $pembimbing; ?></span></td>
 
                             <td>
                                 <?php
                                 // Query untuk menghitung jumlah 'Masuk' berdasarkan 'nis'
-                                $query = "SELECT COUNT(`ket`) AS jumlah_masuk FROM `presensi` WHERE `ket` = 'Masuk' AND `nis` = $nis";
+                                // Prepared statement untuk menghitung jumlah 'Masuk'
+                                $query = "SELECT COUNT(`ket`) AS jumlah_masuk FROM `presensi` WHERE `ket` = 'Masuk' AND `nis` = ?";
+                                $stmt = mysqli_prepare($konek, $query);
 
-                                // Eksekusi query
-                                $result = mysqli_query($konek, $query);
+                                // Bind parameter $nis ke dalam prepared statement
+                                mysqli_stmt_bind_param($stmt, "s", $nis);
+
+                                // Eksekusi prepared statement
+                                mysqli_stmt_execute($stmt);
+
+                                // Ambil hasil query
+                                $result = mysqli_stmt_get_result($stmt);
 
                                 // Periksa apakah query berhasil dijalankan
                                 if ($result) {
-                                    // Ambil hasil query
-                                    $row = mysqli_fetch_assoc($result);
-
                                     // Ambil nilai jumlah 'Masuk' dari hasil query
+                                    $row = mysqli_fetch_assoc($result);
                                     $jumlah_masuk = $row['jumlah_masuk'];
 
                                     // Tampilkan jumlah 'Masuk'
@@ -400,102 +460,134 @@ if (@$_SESSION["admin"]) {
                                     mysqli_free_result($result);
                                 } else {
                                     // Tampilkan pesan kesalahan jika query gagal
-                                    echo "Error: " . mysqli_error($konek);
+                                    echo "Error: " . mysqli_stmt_error($stmt);
                                 }
+
+                                // Tutup prepared statement
+                                mysqli_stmt_close($stmt);
 
                                 // IJIN
                                 // Query untuk menghitung jumlah 'Masuk' berdasarkan 'nis'
-                                $query = "SELECT COUNT(`ket`) AS jumlah_ijin FROM `presensi` WHERE `ket` = 'Ijin' AND `nis` = $nis";
+                        
+                                // Prepared statement untuk menghitung jumlah 'Ijin'
+                                $query = "SELECT COUNT(`ket`) AS jumlah_ijin FROM `presensi` WHERE `ket` = 'Ijin' AND `nis` = ?";
+                                $stmt = mysqli_prepare($konek, $query);
 
-                                // Eksekusi query
-                                $result = mysqli_query($konek, $query);
+                                // Bind parameter $nis ke dalam prepared statement
+                                mysqli_stmt_bind_param($stmt, "s", $nis);
+
+                                // Eksekusi prepared statement
+                                mysqli_stmt_execute($stmt);
+
+                                // Ambil hasil query
+                                $result = mysqli_stmt_get_result($stmt);
 
                                 // Periksa apakah query berhasil dijalankan
                                 if ($result) {
-                                    // Ambil hasil query
+                                    // Ambil nilai jumlah 'Ijin' dari hasil query
                                     $row = mysqli_fetch_assoc($result);
-
-                                    // Ambil nilai jumlah 'Masuk' dari hasil query
                                     $jumlah_ijin = $row['jumlah_ijin'];
 
-                                    // Tampilkan jumlah 'Masuk'
+                                    // Tampilkan jumlah 'Ijin'
                                     echo "<span class='badge bg-info text-dark'>I: $jumlah_ijin</span><br>";
 
                                     // Bebaskan hasil query
                                     mysqli_free_result($result);
                                 } else {
                                     // Tampilkan pesan kesalahan jika query gagal
-                                    echo "Error: " . mysqli_error($konek);
+                                    echo "Error: " . mysqli_stmt_error($stmt);
                                 }
+
+                                // Tutup prepared statement
+                                mysqli_stmt_close($stmt);
 
                                 // SAKIT
                                 // Query untuk menghitung jumlah 'Masuk' berdasarkan 'nis'
-                                $query = "SELECT COUNT(`ket`) AS jumlah_sakit FROM `presensi` WHERE `ket` = 'Sakit' AND `nis` = $nis";
+                                // Prepared statement untuk menghitung jumlah 'Sakit'
+                                $query = "SELECT COUNT(`ket`) AS jumlah_sakit FROM `presensi` WHERE `ket` = 'Sakit' AND `nis` = ?";
+                                $stmt = mysqli_prepare($konek, $query);
 
-                                // Eksekusi query
-                                $result = mysqli_query($konek, $query);
+                                // Bind parameter $nis ke dalam prepared statement
+                                mysqli_stmt_bind_param($stmt, "s", $nis);
+
+                                // Eksekusi prepared statement
+                                mysqli_stmt_execute($stmt);
+
+                                // Ambil hasil query
+                                $result = mysqli_stmt_get_result($stmt);
 
                                 // Periksa apakah query berhasil dijalankan
                                 if ($result) {
-                                    // Ambil hasil query
+                                    // Ambil nilai jumlah 'Sakit' dari hasil query
                                     $row = mysqli_fetch_assoc($result);
-
-                                    // Ambil nilai jumlah 'Masuk' dari hasil query
                                     $jumlah_sakit = $row['jumlah_sakit'];
 
-                                    // Tampilkan jumlah 'Masuk'
+                                    // Tampilkan jumlah 'Sakit'
                                     echo "<span class='badge bg-warning text-dark'>S: $jumlah_sakit</span>";
 
                                     // Bebaskan hasil query
                                     mysqli_free_result($result);
                                 } else {
                                     // Tampilkan pesan kesalahan jika query gagal
-                                    echo "Error: " . mysqli_error($konek);
+                                    echo "Error: " . mysqli_stmt_error($stmt);
                                 }
+
+                                // Tutup prepared statement
+                                mysqli_stmt_close($stmt);
                                 ?>
                             </td>
 
                             <?php
-                            if (@$_GET['tampil'] == 'jurnal') {
+                            if (@$tampil == 'jurnal') {
                                 echo "<td>";
                                 $sql_absen = mysqli_query($konek, "SELECT * FROM presensi WHERE nis = '$nis' AND timestamp LIKE '%" . $tanggal_pilih . "%'");
 
                                 $data_file = array();
                                 foreach ($sql_absen as $dtap) {
                                     // $data_file[] = $dtap;
-
+                    
                                     // echo "<pre>";
                                     // print_r($data_file);
                                     // echo "</pre>";
-
+                    
                                     $data_file = @$dtap['file'];
                                     $data_jurnal = @$dtap['jurnal'];
                                     // echo "<td>$data_file</td>";
-                            ?>
+                                    ?>
 
                                     <img src="../img/presensi/<?= $data_file; ?>" id="foto_jurnal"><br>
                                     <label for="foto_jurnal"><?= $data_jurnal ? $data_jurnal : "-"; ?></label><br>
-                            <?php
+                                    <?php
                                 }
                                 echo "</td>";
                             } else {
 
                                 $tgl_sekarang = $_tgl_kemarin = date('Y-m-d', strtotime('-7 day', strtotime($tanggal_pilih)));
-                                $hari_sekarang = $hari_indonesia;
                                 $tgl_kemarin = array();
-                                $hari_kemarin = array();
 
                                 for ($s = 0; $s < 8; $s++) {
-                                    echo "<td class = 'text-center'>";
-                                    // $sql_absen = "SELECT DISTINCT timestamp FROM presensi WHERE nis = '$nis' AND timestamp LIKE '%" . $tgl_sekarang . "%'";
-                                    $sql_absen = "SELECT * FROM presensi WHERE nis = '$nis' AND timestamp LIKE '%" . $tgl_sekarang . "%'";
-                                    $result_absen = mysqli_query($konek, $sql_absen);
+                                    echo "<td class='text-center'>";
+
+                                    // Prepared statement untuk mengambil presensi
+                                    $sql_absen = "SELECT * FROM presensi WHERE nis = ? AND timestamp LIKE ?";
+                                    $stmt = mysqli_prepare($konek, $sql_absen);
+
+                                    // Bind parameter $nis dan $tgl_sekarang ke dalam prepared statement
+                                    $nis_param = $nis;
+                                    $tgl_param = '%' . $tgl_sekarang . '%';
+                                    mysqli_stmt_bind_param($stmt, "ss", $nis_param, $tgl_param);
+
+                                    // Eksekusi prepared statement
+                                    mysqli_stmt_execute($stmt);
+
+                                    // Ambil hasil query
+                                    $result_absen = mysqli_stmt_get_result($stmt);
                                     $hitung_absen = mysqli_num_rows($result_absen);
                                     $hasil_ket_absen = mysqli_fetch_array($result_absen);
-                                    $ket_absen = @$hasil_ket_absen['ket'];
-                                    
+                                    $ket_absen = isset($hasil_ket_absen['ket']) ? $hasil_ket_absen['ket'] : '';
+
+                                    // Tentukan hasil presensi berdasarkan ket_absen
                                     if ($ket_absen == "Masuk") {
-                                        // $hasil_presensi = "✅";
                                         $hasil_presensi = "<i class='fas fa-check'></i>&nbsp;";
                                         $bgbg = "success";
                                     } elseif ($ket_absen == "Izin") {
@@ -510,18 +602,22 @@ if (@$_SESSION["admin"]) {
                                     } else {
                                         $hasil_presensi = "✅&nbsp;";
                                     }
-                                    
+
+                                    // Tampilkan badge sesuai dengan hasil presensi
                                     if ($hitung_absen > 0) {
-                                        echo "<span class='badge text-bg-$bgbg'>$hasil_presensi&nbsp;" . $hitung_absen . "</span>";
-                                        // <i class='fas fa-check'></i>&nbsp;&nbsp;
+                                        echo "<span class='badge bg-$bgbg'>$hasil_presensi&nbsp;$hitung_absen</span>";
                                     } else {
-                                        echo "<span class='badge text-bg-danger'>
-                                    <i class='fas fa-times'></i></span>";
+                                        echo "<span class='badge bg-danger'><i class='fas fa-times'></i></span>";
                                     }
 
+                                    // Hitung tanggal kemarin untuk iterasi selanjutnya
                                     $_tgl_kemarin = date('Y-m-d', strtotime('+1 day', strtotime($tgl_sekarang)));
                                     $tgl_kemarin[] = $_tgl_kemarin;
                                     $tgl_sekarang = $_tgl_kemarin;
+
+                                    // Tutup prepared statement
+                                    mysqli_stmt_close($stmt);
+
                                     echo "</td>";
                                 }
                             }
@@ -534,7 +630,7 @@ if (@$_SESSION["admin"]) {
         <!-- </div> -->
 
         <script type="text/javascript">
-            $(document).ready(function() {
+            $(document).ready(function () {
                 $('#tabeldatasiswa').DataTable({
                     dom: 'rBlftip',
                     buttons: [
@@ -546,9 +642,9 @@ if (@$_SESSION["admin"]) {
                     "lengthMenu": [
                         <?php if (@$_GET) { ?>[-1, 5, 10, 25, 50, -1],
                             ["Semua", 5, 10, 25, 50, "Semua"]
-                        <?php } else { ?>[10, 25, 50, -1],
+                                                <?php } else { ?>[10, 25, 50, -1],
                             [10, 25, 50, "Semua"]
-                        <?php } ?>
+                                                <?php } ?>
                     ],
                     "pagingType": "full",
                     "language": {
@@ -581,7 +677,9 @@ if (@$_SESSION["admin"]) {
         </script>
 
 
-    <?php } else {
+        <?php
+        mysqli_close($konek);
+} else {
     // $_SESSION['url_go'] = $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     $_SESSION['url_go'] = $_SERVER['REQUEST_URI'];
     // echo $_SESSION['url_go'];
@@ -595,7 +693,9 @@ if (@$_SESSION["admin"]) {
 
 
     <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
+        crossorigin="anonymous"></script>
 
     <?php include "../views/footer.php" ?>
 

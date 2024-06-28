@@ -6,71 +6,104 @@ $app = true;
 include "../views/header.php";
 include "../views/navbar.php";
 
-    include "../koneksi.php";
+include "../koneksi.php";
 if (@$_SESSION["admin"]) {
 
     if (@$_POST['post_absen'] == "inputabsen") {
         // echo "<pre>";
         // print_r(@$_POST);
         // echo "</pre>";
-        
-        $nis = $_POST['siswa'];
-        $keterangan = $_POST['ket'];
-        $catatan = $_POST['catatan'];
-        $nama_pembimbing = $_POST['nama_pembimbing'];
-        $tanggal = $_POST['tanggal'];
+
+        $nis = isset($_POST['siswa']);
+        $keterangan = isset($_POST['ket']);
+        $catatan = isset($_POST['catatan']);
+        $nama_pembimbing = isset($_POST['nama_pembimbing']);
+        $tanggal = isset($_POST['tanggal']);
 
         // cari kode dudi
-        $q_dudi = mysqli_query($konek, "SELECT kode FROM duditerisi WHERE nis = '$nis'");
-        $kode = mysqli_fetch_array($q_dudi)['kode'];
+        if (isset($nis)) {
+            // Gunakan prepared statement untuk mengamankan kueri SQL
+            $stmt = mysqli_prepare($konek, "SELECT kode FROM duditerisi WHERE nis = ?");
+            mysqli_stmt_bind_param($stmt, "s", $nis);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
 
-        // insert ke presensi
-        $file = @$_FILES['fotodok']['name'];
-        $file_loc = @$_FILES['fotodok']['tmp_name'];
-        $file_size = @$_FILES['fotodok']['size'];
-        $file_type = @$_FILES['fotodok']['type'];
-
-        $new_size = $file_size / 1024;
-        $new_file_name = strtolower($file);
-        $new_file_name = $nis . '_' . $kode . '_' . $tanggal . "_" . $jam . "_" .  $new_file_name;
-        $final_file = str_replace(' ', '_', $new_file_name);
-
-        $folder = "../img/presensi/" . $final_file;
-        $allowTypes = array('jpg', 'png', 'jpeg'); //allow only these types of files
-        $fileType = pathinfo($folder, PATHINFO_EXTENSION); // get file extension
-        $compressedImage = compressImage($file_loc, $folder, 10); //compress image
-            // echo "oook5<br>";
-
-        $timestamp = $tanggal . " 08:00:00";
-
-        if ($compressedImage) {
-            // echo "compres<br>";
-            $sql = "INSERT INTO presensi (timestamp, nis, kode, file, type, size, ket, jurnal) VALUES ('$timestamp', '$nis', '$kode', '$final_file', '$file_type', '$new_size', '$keterangan', '$catatan')";
-
-            $hasil = mysqli_query($konek, $sql);
-            $tmp = "tambahkan Absen dari: $nis,<br>Kode DUDI: $kode,<br>Pembimbing: $nama_pembimbing,<br>Keterangan: $keterangan,<br>Catatan: $catatan<br>Tanggal: $tanggal";
-
-            if ($hasil) {
-                $pesan = "Berhasil $tmp";
-                $_SESSION['pesan'] = $pesan;
-                $pesan = "";
+            // Ambil nilai 'kode' dari hasil kueri
+            if ($row = mysqli_fetch_array($result)) {
+                $kode = $row['kode'];
             } else {
-                $pesan_er = "Gagal $tmp<br>" .  mysqli_error($konek);
-                $_SESSION['pesan_er'] = $pesan_er;
-                $pesan_er = "";
+                // Handle jika data tidak ditemukan
+                $kode = "";
             }
 
-            echo "<script>
+            // Tutup statement prepared
+            mysqli_stmt_close($stmt);
+
+            if (isset($kode)) {
+                // insert ke presensi
+                $file = @$_FILES['fotodok']['name'];
+                $file_loc = @$_FILES['fotodok']['tmp_name'];
+                $file_size = @$_FILES['fotodok']['size'];
+                $file_type = @$_FILES['fotodok']['type'];
+
+                $new_size = $file_size / 1024;
+                $new_file_name = strtolower($file);
+                $new_file_name = $nis . '_' . $kode . '_' . $tanggal . "_" . $jam . "_" . $new_file_name;
+                $final_file = str_replace(' ', '_', $new_file_name);
+
+                $folder = "../img/presensi/" . $final_file;
+                $allowTypes = array('jpg', 'png', 'jpeg'); //allow only these types of files
+                $fileType = pathinfo($folder, PATHINFO_EXTENSION); // get file extension
+                $compressedImage = compressImage($file_loc, $folder, 10); //compress image
+                // echo "oook5<br>";
+
+                $timestamp = $tanggal . " 08:00:00";
+
+                if ($compressedImage) {
+                    // echo "compres<br>";
+                    $sql = "INSERT INTO presensi (timestamp, nis, kode, file, type, size, ket, jurnal) VALUES ('$timestamp', '$nis', '$kode', '$final_file', '$file_type', '$new_size', '$keterangan', '$catatan')";
+
+                    $hasil = mysqli_query($konek, $sql);
+                    $tmp = "tambahkan Absen dari: $nis,<br>Kode DUDI: $kode,<br>Pembimbing: $nama_pembimbing,<br>Keterangan: $keterangan,<br>Catatan: $catatan<br>Tanggal: $tanggal";
+
+                    if ($hasil) {
+                        $pesan = "Berhasil $tmp";
+                        $_SESSION['pesan'] = $pesan;
+                        $pesan = "";
+                    } else {
+                        $pesan_er = "Gagal $tmp<br>" . mysqli_error($konek);
+                        $_SESSION['pesan_er'] = $pesan_er;
+                        $pesan_er = "";
+                    }
+
+                    echo "<script>
                 window.location.href = '../app/inputabsen.php';
             </script>";
+                } else {
+                    echo "nggak nompres<br>";
+                }
+            } else {
+                echo "<script>
+                    alert('Kode tidak ditemukan');
+                    </script>";
+                echo "<script>
+                    window.location.href = '../app/inputabsen.php';
+                    </script>";
+                exit();
+            }
         } else {
-            echo "nggak nompres<br>";
+            echo "<script>
+                alert('NIS tidak valid');
+                </script>";
+            echo "<script>
+                window.location.href = '../app/inputabsen.php';
+                </script>";
+            exit();
         }
     }
 
     $q_pembimbing = mysqli_query($konek, "SELECT * FROM datapembimbing");
-    $get_pembimbing = @$_GET['idp'];
-?>
+    ?>
 
     <div class="container">
         <div class="mb-3 text-center">
@@ -82,7 +115,7 @@ if (@$_SESSION["admin"]) {
 
         if ($p || $p_r) { ?>
             <div class="alert alert-warning alert-dismissible fade show text-center" role="alert">
-                <?= $p; ?><?= $p_r; ?>
+                <?= $p; ?>         <?= $p_r; ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         <?php } ?>
@@ -94,7 +127,7 @@ if (@$_SESSION["admin"]) {
                         <option value="">-- Pilih Nama Pembimbing --</option>
                         <?php
                         foreach ($q_pembimbing as $data1) {
-                        ?>
+                            ?>
                             <option value="<?= $data1['id']; ?>"><?= $data1['nama']; ?></option>
                         <?php } ?>
                     </select>
@@ -131,10 +164,12 @@ if (@$_SESSION["admin"]) {
                 </div>
                 <div class="mb-3">
                     <label for="">Catatan</label>
-                    <textarea class="form-control" name="catatan" id="text_catatan" name="" id="" cols="30" rows="3" required></textarea>
+                    <textarea class="form-control" name="catatan" id="text_catatan" name="" id="" cols="30" rows="3"
+                        required></textarea>
                 </div>
                 <div class="mb-3 d-flex justify-content-between">
-                    <button type="submit" name="post_absen" value="inputabsen" class="btn btn-success btn-sm border-0">Simpan</button>
+                    <button type="submit" name="post_absen" value="inputabsen"
+                        class="btn btn-success btn-sm border-0">Simpan</button>
                     <a href="../app/inputabsen.php" class="btn btn-secondary btn-sm border-0">Refresh</a>
 
                     <a href="../admin" class="btn btn-dark btn-sm border-0">Kembali</a>
@@ -142,7 +177,7 @@ if (@$_SESSION["admin"]) {
             </form>
         </div>
     </div>
-    
+
     <!-- Bootstrap Bundle with Popper -->
     <!--<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>-->
 
@@ -150,13 +185,13 @@ if (@$_SESSION["admin"]) {
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 
     <script type="text/javascript">
-        $('#select_pembimbing').change(function() {
+        $('#select_pembimbing').change(function () {
             var select_pembimbing = $(this).val();
             $.ajax({
                 type: 'POST',
                 url: '_inputabsen.php',
                 data: 'idp=' + select_pembimbing,
-                success: function(response) {
+                success: function (response) {
                     // alert(response);
                     $('#select_siswa').html(response);
                 }
@@ -182,37 +217,40 @@ if (@$_SESSION["admin"]) {
     </script>
 <?php } ?>
 <!-- Bootstrap Bundle with Popper -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
+    crossorigin="anonymous"></script>
 
 <?php
+mysqli_close($konek);
 
 include "../views/footer.php";
 
 function compressImage($source, $destination, $quality)
-    {
-        // mendapatkan info gambar 
-        $imgInfo = getimagesize($source);
-        $mime = $imgInfo['mime'];
+{
+    // mendapatkan info gambar 
+    $imgInfo = getimagesize($source);
+    $mime = $imgInfo['mime'];
 
-        // membuat gambar baru dari file sumber
-        switch ($mime) {
-            case 'image/jpeg':
-                $image = imagecreatefromjpeg($source);
-                break;
-            case 'image/png':
-                $image = imagecreatefrompng($source);
-                break;
-            case 'image/gif':
-                $image = imagecreatefromgif($source);
-                break;
-            default:
-                $image = imagecreatefromjpeg($source);
-        }
-
-        // menyimpan gambar 
-        imagejpeg($image, $destination, $quality);
-
-        // mengembalikan gambar yang dikompres 
-        return $destination;
+    // membuat gambar baru dari file sumber
+    switch ($mime) {
+        case 'image/jpeg':
+            $image = imagecreatefromjpeg($source);
+            break;
+        case 'image/png':
+            $image = imagecreatefrompng($source);
+            break;
+        case 'image/gif':
+            $image = imagecreatefromgif($source);
+            break;
+        default:
+            $image = imagecreatefromjpeg($source);
     }
+
+    // menyimpan gambar 
+    imagejpeg($image, $destination, $quality);
+
+    // mengembalikan gambar yang dikompres 
+    return $destination;
+}
 ?>

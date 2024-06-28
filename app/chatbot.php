@@ -9,7 +9,7 @@ if (@$_SESSION['admin']) {
 
     $result_pembimbing = mysqli_query($konek, "SELECT * FROM datapembimbing");
     $result_dudi = mysqli_query($konek, "SELECT * FROM datadudi");
-?>
+    ?>
 
     <style>
         #nohp {
@@ -137,7 +137,8 @@ if (@$_SESSION['admin']) {
         <h2>Chat Pembimbing</h2>
 
         <div class="dropdown m-2">
-            <a class="btn btn-success btn-sm border-0 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <a class="btn btn-success btn-sm border-0 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                aria-expanded="false">
                 Pembimbing
             </a><br>
             <!--<label for="">Pilih Pembimbing</label>-->
@@ -153,15 +154,33 @@ if (@$_SESSION['admin']) {
 
         <?php
         if (@$_GET) {
-            $id_pemb = @$_GET['p'];
+            // Periksa apakah $_GET['p'] sudah didefinisikan
+            if (isset($_GET['p'])) {
+                $id_pemb = $_GET['p'];
 
-            $cari_nama_pemb = mysqli_query($konek, "SELECT * FROM datapembimbing WHERE id = '$id_pemb'");
+                // Gunakan prepared statement untuk mengamankan kueri SQL
+                $stmt = mysqli_prepare($konek, "SELECT * FROM datapembimbing WHERE id = ?");
+                mysqli_stmt_bind_param($stmt, "i", $id_pemb);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
 
-            $hasil_pembimbing = mysqli_fetch_array($cari_nama_pemb);
-            $pembimbing = $hasil_pembimbing['nama'];
+                // Ambil data pembimbing
+                if ($hasil_pembimbing = mysqli_fetch_array($result)) {
+                    $pembimbing = $hasil_pembimbing['nama'];
+                } else {
+                    // Handle jika data tidak ditemukan
+                    $pembimbing = "Pembimbing tidak ditemukan";
+                }
 
-            $cari_siswa_dari_id_pemb = mysqli_query($konek, "SELECT * FROM duditerisi WHERE pembimbing LIKE '%$pembimbing%'");
-        ?>
+                // Tutup statement prepared
+                mysqli_stmt_close($stmt);
+
+                $cari_siswa_dari_id_pemb = mysqli_query($konek, "SELECT * FROM duditerisi WHERE pembimbing LIKE '%$pembimbing%'");
+            } else {
+                // Handle jika $_GET['p'] tidak ada
+                $pembimbing = "Data Pembimbing tidak tersedia";
+            }
+            ?>
 
             <div class="m-0">
                 <label for="">Daftar Siswa bimbingan dari : <?= $pembimbing; ?></label>
@@ -191,14 +210,15 @@ if (@$_SESSION['admin']) {
                                     $ada_pesan = '<i class="far fa-message text-success"></i>';
                                 }
                             }
-                        ?>
-                            <label onclick="tampilchat('<?= $nis; ?>', '<?= $nohp; ?>');"><?= $namasiswa; ?>&nbsp;<?= $ada_pesan; ?></label>
+                            ?>
+                            <label
+                                onclick="tampilchat('<?= $nis; ?>', '<?= $nohp; ?>');"><?= $namasiswa; ?>&nbsp;<?= $ada_pesan; ?></label>
                             <br>
                             <label id="nohp" for=""><?= $kelas; ?>&nbsp;(<?= $nis; ?>)</label>
                             <br>
                             <label id="nohp" for=""><?= $nohp ? $nohp : "tidak ada nomor WA"; ?></label>
                             <hr>
-                        <?php
+                            <?php
                             $ada_pesan = '';
                         } ?>
                     </div>
@@ -214,7 +234,8 @@ if (@$_SESSION['admin']) {
                         </div>
                         <div class="row">
                             <div id="chat-box-reply">
-                                <textarea class="message-input" id="message-input" placeholder="Tulis pesan di sini..."></textarea>
+                                <textarea class="message-input" id="message-input"
+                                    placeholder="Tulis pesan di sini..."></textarea>
                                 <button class="send-button" id="send-button">Kirim</button>
                             </div>
                         </div>
@@ -223,9 +244,13 @@ if (@$_SESSION['admin']) {
             </div>
 
             <div class="container"></div>
-        <?php } else {
+            <?php
+        } else {
             echo "Pilih Pembimbing<br>";
-        } ?>
+        }
+
+        mysqli_close($konek);
+        ?>
     <?php } else { ?>
         <?php
         $_SESSION['url_go'] = $_SERVER['REQUEST_URI'];
@@ -239,7 +264,9 @@ if (@$_SESSION['admin']) {
     <?php } ?>
 
     <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
+        crossorigin="anonymous"></script>
 
     <script>
         var nomorhp = '';
@@ -276,7 +303,7 @@ if (@$_SESSION['admin']) {
 
         // Event listener untuk tombol "Send"
         const sendButton = document.getElementById('send-button');
-        sendButton.addEventListener('click', function() {
+        sendButton.addEventListener('click', function () {
             sendMessage();
         });
 
@@ -297,7 +324,7 @@ if (@$_SESSION['admin']) {
                     timestamp: timestamp,
                     key: '!234'
                 },
-                success: function(response) {
+                success: function (response) {
                     // Tampilkan pesan balasan dari server (jika ada)
                     // alert(message + '\n' + nomor + '\n' + timestamp);
 
@@ -309,7 +336,7 @@ if (@$_SESSION['admin']) {
                     // Scroll ke bawah secara otomatis
                     chatboxmsg.scrollTop = chatboxmsg.scrollHeight;
                 },
-                error: function() {
+                error: function () {
                     alert('Terjadi kesalahan saat mengirim pesan.');
                 }
             });

@@ -1,28 +1,38 @@
 <?php
-if (isset($_POST['message'])) {
-    // Ambil pesan dari URL GET
-    $pesan = @$_POST['message'];
-    $nomor = @$_POST['nomor'];
-    $timestamp = @$_POST['timestamp'];
+if (isset($_POST['message'], $_POST['nomor'], $_POST['timestamp'], $_POST['key'])) {
+    // Ambil dan validasi data dari POST
+    $pesan = $_POST['message'];
+    $nomor = $_POST['nomor'];
+    $timestamp = $_POST['timestamp'];
+    $key = $_POST['key'];
 
-    // Lakukan apa yang Anda butuhkan dengan pesan ini, misalnya, menyimpannya ke dalam database
-    if (@$_POST['key'] == "!234") {
+    // Validasi key
+    if ($key == "!234") {
+        // Include file koneksi
         include "../koneksi.php";
 
-        $update = mysqli_query($konek, "INSERT INTO `loadchat`(`nomor`, `pesan`, `media`, `status`, `timestamp`) VALUES ('$nomor','$pesan', NULL,'dikirim','$timestamp')");
+        $query = "INSERT INTO `loadchat`(`nomor`, `pesan`, `media`, `status`, `timestamp`) VALUES ('$nomor', '$pesan', NULL, 'dikirim', '$timestamp')";
+        $update = mysqli_query($konek, $query);
 
         if ($update) {
-            // Respon balik jika diperlukan
+            // Pesan balasan jika berhasil
             echo "Pesan telah berhasil diterima dan diolah: $pesan";
 
-            // kirim WA
             $token = "@USo9EJ4cicpFQ1t9n0n";
             include "apiwa.php";
+        } else {
+            // Pesan balasan jika gagal menyimpan ke database
+            echo "Gagal menyimpan pesan ke database: " . mysqli_error($konek);
         }
+
+        // Tutup koneksi
+        mysqli_close($konek);
     } else {
-        echo "perlu otentikasi";
+        // Pesan balasan jika kunci tidak valid
+        echo "Perlu otentikasi yang benar.";
     }
 } else {
-    // Respon balik jika pesan tidak ditemukan
-    echo "Pesan tidak ditemukan.";
+    // Pesan balasan jika tidak semua data diterima
+    echo "Data yang diperlukan tidak lengkap.";
 }
+
